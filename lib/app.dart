@@ -9,6 +9,7 @@ import 'features/settings/presentation/pages/onboarding_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
 import 'features/settings/presentation/providers/settings_providers.dart';
 import 'features/trips/presentation/pages/trip_list_page.dart';
+import 'floating_nav_bar.dart';
 
 /// Root widget: sets up [MaterialApp] with the app theme and light/dark/system
 /// mode support (§8.3), driven by the persisted [AppSettings.themeMode].
@@ -70,36 +71,38 @@ class _RootShellState extends State<RootShell> {
     SettingsPage(),
   ];
 
+  static const List<FloatingNavItem> _navItems = [
+    FloatingNavItem(
+      icon: Icons.currency_exchange_outlined,
+      selectedIcon: Icons.currency_exchange,
+      label: 'Converter',
+    ),
+    FloatingNavItem(
+      icon: Icons.card_travel_outlined,
+      selectedIcon: Icons.card_travel,
+      label: 'Trip',
+    ),
+    FloatingNavItem(
+      icon: Icons.notifications_outlined,
+      selectedIcon: Icons.notifications,
+      label: 'Alerts',
+    ),
+    FloatingNavItem(
+      icon: Icons.settings_outlined,
+      selectedIcon: Icons.settings,
+      label: 'Settings',
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _tabs),
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: FloatingNavBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) =>
             setState(() => _selectedIndex = index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.currency_exchange_outlined),
-            selectedIcon: Icon(Icons.currency_exchange),
-            label: 'Converter',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.card_travel_outlined),
-            selectedIcon: Icon(Icons.card_travel),
-            label: 'Trip',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.notifications_outlined),
-            selectedIcon: Icon(Icons.notifications),
-            label: 'Alerts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        items: _navItems,
       ),
     );
   }

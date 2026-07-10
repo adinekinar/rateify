@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rateify/app.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
+import 'package:rateify/floating_nav_bar.dart';
 
 import 'test_helpers/fake_settings_repository.dart';
 
@@ -18,20 +19,22 @@ void main() {
     );
   }
 
-  testWidgets('shows onboarding when it has not been completed yet', (
-    tester,
-  ) async {
-    await tester.pumpWidget(buildApp(onboardingCompleted: false));
+  testWidgets(
+    'shows onboarding when it has not been completed yet, with no floating nav bar',
+    (tester) async {
+      await tester.pumpWidget(buildApp(onboardingCompleted: false));
 
-    expect(find.text('Welcome to Rateify'), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
-  });
+      expect(find.text('Welcome to Rateify'), findsOneWidget);
+      expect(find.byType(FloatingNavBar), findsNothing);
+    },
+  );
 
   testWidgets(
-    'RateifyApp shows all 4 bottom nav tabs once onboarding is complete',
+    'RateifyApp shows all 4 tabs behind the floating nav bar once onboarding is complete',
     (tester) async {
       await tester.pumpWidget(buildApp(onboardingCompleted: true));
 
+      expect(find.byType(FloatingNavBar), findsOneWidget);
       expect(find.text('Converter'), findsWidgets);
       expect(find.text('Trip'), findsWidgets);
       expect(find.text('Alerts'), findsWidgets);
@@ -45,15 +48,19 @@ void main() {
     await tester.pumpWidget(buildApp(onboardingCompleted: true));
 
     expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      tester.widget<FloatingNavBar>(find.byType(FloatingNavBar)).selectedIndex,
       0,
     );
 
-    await tester.tap(find.widgetWithText(NavigationDestination, 'Settings'));
+    final settingsNavLabel = find.descendant(
+      of: find.byType(FloatingNavBar),
+      matching: find.text('Settings'),
+    );
+    await tester.tap(settingsNavLabel);
     await tester.pumpAndSettle();
 
     expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      tester.widget<FloatingNavBar>(find.byType(FloatingNavBar)).selectedIndex,
       3,
     );
   });

@@ -90,11 +90,6 @@ abstract final class AppTheme {
         elevation: 0,
         titleTextStyle: AppTypography.title(color: onSurface),
       ),
-      bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: surface,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: subtle,
-      ),
     );
   }
 }

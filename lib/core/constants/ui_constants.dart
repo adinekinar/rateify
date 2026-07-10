@@ -7,6 +7,13 @@ abstract final class UiConstants {
   static const double bottomSheetTopRadius = 24;
   static const double dialogRadius = 16;
 
+  // Floating nav bar — not an explicit §15.4 token, added for the floating
+  // shell nav bar (§15.1/§15.5: flat design, shadow only for floating
+  // surfaces).
+  static const double floatingNavBarRadius = 28;
+  static const double floatingNavBarIndicatorRadius = 20;
+  static const double floatingNavBarHeight = 64;
+
   // Spacing scale
   static const double spaceXs = 4;
   static const double spaceSm = 8;
