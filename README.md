@@ -1,16 +1,27 @@
-# rateify
+# Rateify
 
-Rateify is a seamless multi-currency calculator inspired by the simplicity of the iOS Calculator experience.
+Rateify is a seamless multi-currency calculator inspired by the simplicity of the iOS Calculator experience. It lets users convert an amount across multiple currencies instantly, understand converted prices through user-defined real-world benchmarks, track trip budgets and expenses in a local trip currency, set rate alerts for currency pairs, and view lightweight historical rate trends — all offline-first, with no account required.
+
+## Architecture
+
+Feature-first architecture with the Repository Pattern and Riverpod for state management. Each feature under `lib/features/` is split into `domain/` (entities, repository interfaces, calculators/services, use cases), `data/` (datasources, models, repository implementations), and `presentation/` (providers, pages, widgets). Shared, feature-agnostic code lives in `lib/core/` (constants, error types, number/currency formatting, theme, utilities).
+
+Presentation-layer code never imports `dio` or `hive` directly — all remote/local data access goes through a repository.
 
 ## Getting Started
 
-This project is a starting point for a Flutter application.
+Requires the Flutter stable channel (see `.github/workflows/ci.yaml` for the exact version this project is built against).
 
-A few resources to get you started if this is your first Flutter project:
+```bash
+flutter pub get
+flutter run -d chrome   # or: flutter run -d macos
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Running Tests
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```bash
+flutter analyze
+flutter test
+```
+
+CI runs both of the above (plus a formatting check) on every push and pull request.
