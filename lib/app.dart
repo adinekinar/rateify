@@ -1,31 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/alerts/presentation/pages/alert_page.dart';
 import 'features/converter/presentation/pages/converter_page.dart';
+import 'features/settings/domain/entities/app_settings.dart';
+import 'features/settings/presentation/pages/onboarding_page.dart';
 import 'features/settings/presentation/pages/settings_page.dart';
+import 'features/settings/presentation/providers/settings_providers.dart';
 import 'features/trips/presentation/pages/trip_list_page.dart';
 
 /// Root widget: sets up [MaterialApp] with the app theme and light/dark/system
-/// mode support (§8.3). Actual theme-mode persistence is wired up once the
-/// settings feature exists (Batch 01) — for now this always follows the
-/// system setting, which is the spec's stated default.
-class RateifyApp extends StatelessWidget {
+/// mode support (§8.3), driven by the persisted [AppSettings.themeMode].
+class RateifyApp extends ConsumerWidget {
   const RateifyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(
+      appSettingsProvider.select((settings) => settings.themeMode),
+    );
+
     return MaterialApp(
       title: 'Rateify',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      // Explicit even though it matches MaterialApp's own default — §8.3
-      // states "system" is the spec'd default, not just an implementation detail.
-      // ignore: avoid_redundant_argument_values
-      themeMode: ThemeMode.system,
-      home: const RootShell(),
+      themeMode: _toFlutterThemeMode(themeMode),
+      home: const AppStartupGate(),
     );
+  }
+
+  ThemeMode _toFlutterThemeMode(AppThemeMode mode) => switch (mode) {
+    AppThemeMode.light => ThemeMode.light,
+    AppThemeMode.dark => ThemeMode.dark,
+    AppThemeMode.system => ThemeMode.system,
+  };
+}
+
+/// Shows onboarding until it's completed (§8.2), then the main navigation
+/// shell — a one-way gate, not a navigation stack.
+class AppStartupGate extends ConsumerWidget {
+  const AppStartupGate({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final onboardingCompleted = ref.watch(onboardingCompletedProvider);
+    return onboardingCompleted ? const RootShell() : const OnboardingPage();
   }
 }
 

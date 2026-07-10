@@ -107,6 +107,38 @@ void main() {
     });
   });
 
+  group('resolveNumberFormatPreferenceFromLocale — §8.4', () {
+    test(
+      'en_US (comma-thousands/dot-decimal locale) resolves to commaDecimalDot',
+      () {
+        expect(
+          resolveNumberFormatPreferenceFromLocale('en_US'),
+          NumberFormatPreference.commaDecimalDot,
+        );
+      },
+    );
+
+    test(
+      'id_ID (dot-thousands/comma-decimal locale) resolves to dotDecimalComma',
+      () {
+        expect(
+          resolveNumberFormatPreferenceFromLocale('id_ID'),
+          NumberFormatPreference.dotDecimalComma,
+        );
+      },
+    );
+
+    test(
+      'de_DE (another dot-thousands/comma-decimal locale) resolves to dotDecimalComma',
+      () {
+        expect(
+          resolveNumberFormatPreferenceFromLocale('de_DE'),
+          NumberFormatPreference.dotDecimalComma,
+        );
+      },
+    );
+  });
+
   group('NumberFormatPreference separators', () {
     test('commaDecimalDot exposes correct separators', () {
       expect(NumberFormatPreference.commaDecimalDot.thousandsSeparator, ',');

@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 /// Supported large-number display formats (§8.4, §10.1).
 ///
 /// There is no `auto` value — device-locale detection is a one-time
@@ -58,6 +60,27 @@ String formatNumber(
       ..write(fractionalPart);
   }
   return buffer.toString();
+}
+
+/// One-time device-locale resolution for the initial `NumberFormatPreference`
+/// (§8.4, added in review pass). Only ever called on first launch — after
+/// that, the persisted value (default or user-changed) always wins.
+///
+/// Uses `intl`'s own CLDR-backed [NumberFormat] to render a test number and
+/// inspects which separator appears last (the decimal separator), rather
+/// than hand-maintaining a country/locale list. Falls back to
+/// [NumberFormatPreference.commaDecimalDot] per §8.4's stated fallback if
+/// neither separator is present for the given locale.
+NumberFormatPreference resolveNumberFormatPreferenceFromLocale(
+  String localeName,
+) {
+  final formatted = NumberFormat.decimalPattern(localeName).format(1000.5);
+  final lastComma = formatted.lastIndexOf(',');
+  final lastDot = formatted.lastIndexOf('.');
+  if (lastComma > lastDot) {
+    return NumberFormatPreference.dotDecimalComma;
+  }
+  return NumberFormatPreference.commaDecimalDot;
 }
 
 String _groupThousands(String digits, String separator) {
