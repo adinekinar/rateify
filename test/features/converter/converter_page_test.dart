@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rateify/core/formatting/number_formatter.dart';
+import 'package:rateify/features/benchmarks/domain/entities/benchmark_item.dart';
+import 'package:rateify/features/benchmarks/presentation/providers/benchmark_providers.dart';
 import 'package:rateify/features/converter/data/models/rate_snapshot_model.dart';
 import 'package:rateify/features/converter/presentation/pages/converter_page.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_providers.dart';
@@ -10,6 +12,7 @@ import 'package:rateify/features/converter/presentation/widgets/custom_keypad.da
 import 'package:rateify/features/settings/domain/entities/app_settings.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
 
+import '../../test_helpers/fake_benchmark_repository.dart';
 import '../../test_helpers/fake_exchange_rate_repository.dart';
 import '../../test_helpers/fake_settings_repository.dart';
 
@@ -18,6 +21,7 @@ void main() {
     WidgetTester tester, {
     List<String> selectedConverterCurrencies = const ['USD', 'EUR'],
     FakeExchangeRateRepository? exchangeRateRepository,
+    List<BenchmarkItem>? initialBenchmarks,
     Size surfaceSize = const Size(400, 900),
   }) async {
     await tester.binding.setSurfaceSize(surfaceSize);
@@ -34,6 +38,9 @@ void main() {
         ),
         exchangeRateRepositoryProvider.overrideWithValue(
           exchangeRateRepository ?? FakeExchangeRateRepository(),
+        ),
+        benchmarkRepositoryProvider.overrideWithValue(
+          FakeBenchmarkRepository(initialBenchmarks: initialBenchmarks),
         ),
       ],
     );
@@ -470,6 +477,87 @@ void main() {
           reason:
               'button height should be at least as comfortable as the Batch 03c baseline',
         );
+      },
+    );
+  });
+
+  group('§4.1 Real Price Mode comparison card (Batch 04)', () {
+    BenchmarkItem benchmark({
+      required String id,
+      required String name,
+      double price = 16000,
+      DateTime? updatedAt,
+    }) {
+      final timestamp = updatedAt ?? DateTime(2026);
+      return BenchmarkItem(
+        id: id,
+        name: name,
+        price: price,
+        currencyCode: 'IDR',
+        isActive: true,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      );
+    }
+
+    testWidgets(
+      'TC-RPM-011: no active benchmarks -> the section is fully hidden, no empty-state text',
+      (tester) async {
+        await pumpConverterPage(tester);
+
+        expect(find.textContaining('Setara'), findsNothing);
+        expect(find.text('Belum ada benchmark.'), findsNothing);
+        expect(find.text('Tidak ada benchmark aktif.'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'one active benchmark -> shows its comparison text, updating as the active tile amount changes',
+      (tester) async {
+        await pumpConverterPage(
+          tester,
+          initialBenchmarks: [benchmark(id: '1', name: 'Nasi Padang')],
+        );
+
+        // Active tile is USD (rate USD->IDR = 16000); typing "3" -> 3 USD ->
+        // 48,000 IDR -> 48,000 / 16,000 = 3.
+        await tester.tap(find.text('3'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Setara 3 Nasi Padang'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'more than one active benchmark -> shows the top one plus a "+N more" affordance opening a bottom sheet with the rest',
+      (tester) async {
+        await pumpConverterPage(
+          tester,
+          initialBenchmarks: [
+            benchmark(
+              id: 'older',
+              name: 'Nasi Padang',
+              updatedAt: DateTime(2026),
+            ),
+            benchmark(
+              id: 'newer',
+              name: 'Onigiri',
+              updatedAt: DateTime(2026, 1, 10),
+            ),
+          ],
+        );
+
+        await tester.tap(find.text('3'));
+        await tester.pumpAndSettle();
+
+        // "Onigiri" was updated more recently -> it's the top card.
+        expect(find.text('Setara 3 Onigiri'), findsOneWidget);
+        expect(find.text('+1 more'), findsOneWidget);
+
+        await tester.tap(find.text('+1 more'));
+        await tester.pumpAndSettle();
+
+        expect(find.text('Setara 3 Nasi Padang'), findsOneWidget);
       },
     );
   });

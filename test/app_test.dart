@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rateify/app.dart';
+import 'package:rateify/features/benchmarks/presentation/providers/benchmark_providers.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_providers.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
 import 'package:rateify/floating_nav_bar.dart';
 
+import 'test_helpers/fake_benchmark_repository.dart';
 import 'test_helpers/fake_exchange_rate_repository.dart';
 import 'test_helpers/fake_settings_repository.dart';
 
@@ -18,6 +20,9 @@ void main() {
         ),
         exchangeRateRepositoryProvider.overrideWithValue(
           FakeExchangeRateRepository(),
+        ),
+        benchmarkRepositoryProvider.overrideWithValue(
+          FakeBenchmarkRepository(),
         ),
       ],
       child: const RateifyApp(),

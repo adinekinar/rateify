@@ -7,6 +7,7 @@ import '../../../../core/constants/ui_constants.dart';
 import '../../../../core/formatting/number_formatter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../benchmarks/presentation/widgets/benchmark_comparison_card.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/currency_tile_state.dart';
 import '../providers/converter_controller.dart';
@@ -203,6 +204,12 @@ class _ConverterBody extends ConsumerWidget {
                       );
                     },
                   ),
+                  // §4.1/TC-RPM-011: renders nothing at all when there are
+                  // no active benchmarks (or none have a resolvable rate),
+                  // so no extra spacing is reserved for it here — the card
+                  // itself collapses to zero height via `SizedBox.shrink()`
+                  // rather than needing a conditional gap around it.
+                  BenchmarkComparisonCard(results: state.benchmarkResults),
                   const SizedBox(height: UiConstants.spaceSm),
                   _AddCurrencyRow(onTap: () => _addCurrency(context, ref)),
                 ],

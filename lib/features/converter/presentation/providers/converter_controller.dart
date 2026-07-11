@@ -2,6 +2,9 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/utils/id_generator.dart';
+import '../../../benchmarks/domain/entities/benchmark_comparison_result.dart';
+import '../../../benchmarks/domain/services/benchmark_calculator.dart';
+import '../../../benchmarks/presentation/providers/benchmark_providers.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../data/models/rate_snapshot_model.dart';
 import '../../domain/entities/currency_tile_state.dart';
@@ -11,13 +14,6 @@ import '../../domain/usecases/change_active_currency.dart';
 import '../../domain/usecases/refresh_rates.dart';
 import '../../domain/usecases/reorder_currency_tiles.dart';
 import 'converter_providers.dart';
-
-/// §13.2 placeholder — Real Price Mode (Batch 04) will define the actual
-/// shape. Kept as an empty class purely so [ConverterUiState.benchmarkResults]
-/// type-checks; it is always `const []` until that batch replaces this.
-class BenchmarkComparisonResult {
-  const BenchmarkComparisonResult();
-}
 
 /// §13.1 Converter UI State.
 class ConverterUiState {
@@ -79,6 +75,21 @@ class ConverterController extends AsyncNotifier<ConverterUiState> {
     final settings = ref.read(appSettingsProvider);
     final repository = ref.read(exchangeRateRepositoryProvider);
 
+    // Benchmarks (Batch 04) can be created/edited/activated from a
+    // completely different page while this controller's state sits idle —
+    // unlike `numberFormatPreference` (only ever re-read on the next tile
+    // mutation), benchmark changes must show up immediately, so listen
+    // and recompute in place rather than waiting for the user to type.
+    ref.listen(benchmarksProvider, (previous, next) {
+      final current = state.valueOrNull;
+      if (current == null) return;
+      _emit(
+        tiles: current.tiles,
+        activeTileId: current.activeTileId,
+        current: current,
+      );
+    });
+
     final tiles = _seedTiles(settings.selectedConverterCurrencies);
     final snapshot = await repository.getSnapshot();
 
@@ -139,6 +150,15 @@ class ConverterController extends AsyncNotifier<ConverterUiState> {
       );
     }).toList();
 
+    final activeTile = tiles.firstWhere((tile) => tile.id == activeTileId);
+    final benchmarkResults = BenchmarkCalculator.compareAll(
+      benchmarks: ref.read(benchmarksProvider),
+      snapshot: snapshot,
+      fromCurrency: activeTile.currencyCode,
+      fromAmount: double.tryParse(activeTile.rawInput) ?? 0,
+      numberFormatPreference: numberFormatPreference,
+    );
+
     return ConverterUiState(
       tiles: updatedTiles,
       activeTileId: activeTileId,
@@ -148,7 +168,7 @@ class ConverterController extends AsyncNotifier<ConverterUiState> {
           : null,
       isRefreshing: isRefreshing,
       isOffline: snapshot.sourceStatus != RateSourceStatus.freshRemote,
-      benchmarkResults: const [],
+      benchmarkResults: benchmarkResults,
     );
   }
 

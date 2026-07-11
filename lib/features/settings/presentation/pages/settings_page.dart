@@ -3,13 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/constants/currency_reference.dart';
 import '../../../../core/formatting/number_formatter.dart';
+import '../../../benchmarks/presentation/pages/benchmark_page.dart';
 import '../../domain/entities/app_settings.dart';
 import '../providers/settings_providers.dart';
 import '../widgets/currency_picker_sheet.dart';
 
-/// Real Settings screen (§8). Only the rows that belong to Batch 01 are
-/// shown — "Refresh rates now", "Manage cached rates", and "Manage
-/// benchmarks" (§8.1) are deliberately absent until their features exist.
+/// Real Settings screen (§8). "Manage benchmarks" is wired in as of Batch
+/// 04, now that the benchmarks feature exists — "Refresh rates now" and
+/// "Manage cached rates" (§8.1) remain deliberately absent until their own
+/// features exist.
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 
@@ -125,6 +127,15 @@ class SettingsPage extends ConsumerWidget {
                       .updateAlertCheckFrequency(selection.first);
                 },
               ),
+            ),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            title: const Text('Manage benchmarks'),
+            subtitle: const Text('Real Price Mode comparison items'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (context) => const BenchmarkPage()),
             ),
           ),
         ],

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rateify/core/formatting/number_formatter.dart';
+import 'package:rateify/features/benchmarks/domain/entities/benchmark_item.dart';
+import 'package:rateify/features/benchmarks/presentation/providers/benchmark_providers.dart';
 import 'package:rateify/features/converter/data/models/rate_snapshot_model.dart';
 import 'package:rateify/features/converter/domain/usecases/reorder_currency_tiles.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_controller.dart';
@@ -8,6 +10,7 @@ import 'package:rateify/features/converter/presentation/providers/converter_prov
 import 'package:rateify/features/settings/domain/entities/app_settings.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
 
+import '../../test_helpers/fake_benchmark_repository.dart';
 import '../../test_helpers/fake_exchange_rate_repository.dart';
 import '../../test_helpers/fake_settings_repository.dart';
 
@@ -15,6 +18,7 @@ void main() {
   ProviderContainer buildContainer({
     List<String> selectedConverterCurrencies = const ['USD', 'EUR'],
     FakeExchangeRateRepository? exchangeRateRepository,
+    List<BenchmarkItem>? initialBenchmarks,
   }) {
     final settings = AppSettings.initial(
       numberFormatPreference: NumberFormatPreference.commaDecimalDot,
@@ -27,6 +31,9 @@ void main() {
         ),
         exchangeRateRepositoryProvider.overrideWithValue(
           exchangeRateRepository ?? FakeExchangeRateRepository(),
+        ),
+        benchmarkRepositoryProvider.overrideWithValue(
+          FakeBenchmarkRepository(initialBenchmarks: initialBenchmarks),
         ),
       ],
     );
