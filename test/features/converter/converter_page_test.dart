@@ -6,6 +6,7 @@ import 'package:rateify/features/converter/data/models/rate_snapshot_model.dart'
 import 'package:rateify/features/converter/presentation/pages/converter_page.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_providers.dart';
 import 'package:rateify/features/converter/presentation/widgets/currency_input_tile.dart';
+import 'package:rateify/features/converter/presentation/widgets/custom_keypad.dart';
 import 'package:rateify/features/settings/domain/entities/app_settings.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
 
@@ -17,8 +18,9 @@ void main() {
     WidgetTester tester, {
     List<String> selectedConverterCurrencies = const ['USD', 'EUR'],
     FakeExchangeRateRepository? exchangeRateRepository,
+    Size surfaceSize = const Size(400, 900),
   }) async {
-    await tester.binding.setSurfaceSize(const Size(400, 900));
+    await tester.binding.setSurfaceSize(surfaceSize);
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final settings = AppSettings.initial(
@@ -91,6 +93,11 @@ void main() {
         ],
       );
 
+      // With 8 tiles, "Add currency" now sits at the end of the same
+      // scrollable tile section rather than in a separate fixed area —
+      // scroll it into view before tapping.
+      await tester.ensureVisible(find.text('Add currency'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Add currency'));
       await tester.pumpAndSettle();
       // HKD is near the top of the (lazily built) list and not already a
@@ -227,4 +234,130 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+
+  group('keypad always fits on-screen without scrolling to reach it', () {
+    // Real device sizes: a common modern phone, and a small older one that
+    // previously reproduced the bug (tiles' Expanded region collapsed
+    // toward zero, and — depending on layout — the keypad could be pushed
+    // out of the fixed-height region it's meant to always occupy).
+    const realisticPhone = Size(375, 667); // iPhone SE (2020/2022) / iPhone 8
+    const smallPhone = Size(320, 568); // iPhone SE (1st gen) — tight case
+
+    void expectKeypadFullyVisible(WidgetTester tester, Size screenSize) {
+      final renderBox =
+          tester.renderObject(find.byType(CustomKeypad)) as RenderBox;
+      final topLeft = renderBox.localToGlobal(Offset.zero);
+      final bottom = topLeft.dy + renderBox.size.height;
+
+      expect(
+        topLeft.dy,
+        greaterThanOrEqualTo(0),
+        reason: 'keypad top must not be above the viewport',
+      );
+      expect(
+        bottom,
+        lessThanOrEqualTo(screenSize.height),
+        reason:
+            'keypad bottom ($bottom) must be fully within the viewport '
+            '(${screenSize.height}) — it must never require scrolling to reach',
+      );
+    }
+
+    testWidgets('2 tiles, realistic phone size', (tester) async {
+      await pumpConverterPage(tester, surfaceSize: realisticPhone);
+      expectKeypadFullyVisible(tester, realisticPhone);
+    });
+
+    testWidgets('8 tiles, realistic phone size', (tester) async {
+      await pumpConverterPage(
+        tester,
+        selectedConverterCurrencies: const [
+          'USD',
+          'EUR',
+          'JPY',
+          'GBP',
+          'AUD',
+          'CAD',
+          'CHF',
+          'CNY',
+        ],
+        surfaceSize: realisticPhone,
+      );
+      expectKeypadFullyVisible(tester, realisticPhone);
+    });
+
+    testWidgets('2 tiles, small phone size (previously reproduced the bug)', (
+      tester,
+    ) async {
+      await pumpConverterPage(tester, surfaceSize: smallPhone);
+      expectKeypadFullyVisible(tester, smallPhone);
+    });
+
+    testWidgets(
+      'on a tight screen, tiles remain built and scrollable rather than being '
+      'squeezed to zero height and vanishing entirely (the actual confirmed root '
+      'cause: the tile Expanded region could collapse toward 0, and a lazy '
+      'ReorderableListView.builder given ~0 height built no items at all — not '
+      'reachable by any scroll, since nothing wrapped the page in a scroll view)',
+      (tester) async {
+        await pumpConverterPage(tester, surfaceSize: smallPhone);
+
+        // Both tiles must actually be built (not skipped by a lazy list
+        // given a collapsed viewport) so the outer scroll view can reach them.
+        expect(find.byType(CurrencyInputTile), findsNWidgets(2));
+        expect(find.text('USD'), findsOneWidget);
+        expect(find.text('EUR'), findsOneWidget);
+
+        // And the tile section is wrapped in a genuinely scrollable region
+        // (not a fixed-size box silently clipping content with no way to
+        // reach it).
+        expect(find.byType(SingleChildScrollView), findsOneWidget);
+      },
+    );
+
+    testWidgets('8 tiles, small phone size', (tester) async {
+      await pumpConverterPage(
+        tester,
+        selectedConverterCurrencies: const [
+          'USD',
+          'EUR',
+          'JPY',
+          'GBP',
+          'AUD',
+          'CAD',
+          'CHF',
+          'CNY',
+        ],
+        surfaceSize: smallPhone,
+      );
+      expectKeypadFullyVisible(tester, smallPhone);
+    });
+
+    testWidgets('at 2 tiles, no debug RenderFlex overflow is reported', (
+      tester,
+    ) async {
+      await pumpConverterPage(tester, surfaceSize: realisticPhone);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('at 8 tiles, no debug RenderFlex overflow is reported', (
+      tester,
+    ) async {
+      await pumpConverterPage(
+        tester,
+        selectedConverterCurrencies: const [
+          'USD',
+          'EUR',
+          'JPY',
+          'GBP',
+          'AUD',
+          'CAD',
+          'CHF',
+          'CNY',
+        ],
+        surfaceSize: realisticPhone,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

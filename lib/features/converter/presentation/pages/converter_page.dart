@@ -125,69 +125,93 @@ class _ConverterBody extends ConsumerWidget {
       appSettingsProvider.select((settings) => settings.numberFormatPreference),
     );
 
+    // The tile list (+ its timestamp label and "Add currency" button) is the
+    // ONLY scrollable/flexible region on this page. It lives inside Expanded
+    // so it can never push the keypad off-screen or force the whole page to
+    // scroll; a SingleChildScrollView inside that Expanded lets the tile
+    // section itself scroll if it doesn't fit (e.g. many tiles, or a very
+    // short device), while the keypad below stays outside any scroll view,
+    // in its own fixed-height region that Flutter always lays out in full.
     return Padding(
       padding: const EdgeInsets.all(UiConstants.spaceMd),
       child: Column(
         children: [
-          if (state.rateSnapshot != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: UiConstants.spaceSm),
-              child: RateTimestampLabel(
-                snapshot: state.rateSnapshot!,
-                errorMessage: state.errorMessage,
-              ),
-            ),
           Expanded(
-            child: ReorderableListView.builder(
-              buildDefaultDragHandles: false,
-              itemCount: state.tiles.length,
-              // onReorderItem (not the deprecated onReorder) already
-              // pre-adjusts newIndex for the removed item at oldIndex, which
-              // is what ReorderCurrencyTilesUsecase.reorder's plain
-              // removeAt+insert logic expects.
-              onReorderItem: notifier.reorder,
-              itemBuilder: (context, index) {
-                final tile = state.tiles[index];
-                final info = _resolveCurrencyInfo(tile.currencyCode);
-                // Active tile shows the literal raw input as typed; inactive
-                // tiles show the formatted converted amount, reformatted
-                // live from the raw double whenever the format preference
-                // changes (§20.2 — never derived from a formatted string).
-                final displayAmount = tile.isActiveInput
-                    ? tile.rawInput
-                    : tile.convertedAmount != null
-                    ? formatNumber(
-                        tile.convertedAmount!,
-                        preference: numberFormatPreference,
-                      )
-                    : '—';
-
-                return Padding(
-                  key: ValueKey(tile.id),
-                  padding: const EdgeInsets.only(bottom: UiConstants.spaceSm),
-                  child: CurrencyInputTile(
-                    currencyInfo: info,
-                    displayAmount: displayAmount,
-                    isActive: tile.isActiveInput,
-                    onTap: () => notifier.selectTile(tile.id),
-                    onLongPress: () => _showTileMenu(context, ref, tile),
-                    dragHandle: ReorderableDragStartListener(
-                      index: index,
-                      child: const Padding(
-                        padding: EdgeInsets.all(UiConstants.spaceSm),
-                        child: Icon(Icons.drag_handle),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (state.rateSnapshot != null)
+                    Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: UiConstants.spaceSm,
+                      ),
+                      child: RateTimestampLabel(
+                        snapshot: state.rateSnapshot!,
+                        errorMessage: state.errorMessage,
                       ),
                     ),
+                  ReorderableListView.builder(
+                    // Nested inside the outer SingleChildScrollView, so this
+                    // list sizes to its content and defers scrolling to the
+                    // ancestor rather than competing with it.
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    buildDefaultDragHandles: false,
+                    itemCount: state.tiles.length,
+                    // onReorderItem (not the deprecated onReorder) already
+                    // pre-adjusts newIndex for the removed item at oldIndex,
+                    // which is what ReorderCurrencyTilesUsecase.reorder's
+                    // plain removeAt+insert logic expects.
+                    onReorderItem: notifier.reorder,
+                    itemBuilder: (context, index) {
+                      final tile = state.tiles[index];
+                      final info = _resolveCurrencyInfo(tile.currencyCode);
+                      // Active tile shows the literal raw input as typed;
+                      // inactive tiles show the formatted converted amount,
+                      // reformatted live from the raw double whenever the
+                      // format preference changes (§20.2 — never derived
+                      // from a formatted string).
+                      final displayAmount = tile.isActiveInput
+                          ? tile.rawInput
+                          : tile.convertedAmount != null
+                          ? formatNumber(
+                              tile.convertedAmount!,
+                              preference: numberFormatPreference,
+                            )
+                          : '—';
+
+                      return Padding(
+                        key: ValueKey(tile.id),
+                        padding: const EdgeInsets.only(
+                          bottom: UiConstants.spaceSm,
+                        ),
+                        child: CurrencyInputTile(
+                          currencyInfo: info,
+                          displayAmount: displayAmount,
+                          isActive: tile.isActiveInput,
+                          onTap: () => notifier.selectTile(tile.id),
+                          onLongPress: () => _showTileMenu(context, ref, tile),
+                          dragHandle: ReorderableDragStartListener(
+                            index: index,
+                            child: const Padding(
+                              padding: EdgeInsets.all(UiConstants.spaceSm),
+                              child: Icon(Icons.drag_handle),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
+                  const SizedBox(height: UiConstants.spaceSm),
+                  OutlinedButton.icon(
+                    onPressed: () => _addCurrency(context, ref),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add currency'),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: UiConstants.spaceSm),
-          OutlinedButton.icon(
-            onPressed: () => _addCurrency(context, ref),
-            icon: const Icon(Icons.add),
-            label: const Text('Add currency'),
           ),
           const SizedBox(height: UiConstants.spaceMd),
           CustomKeypad(
