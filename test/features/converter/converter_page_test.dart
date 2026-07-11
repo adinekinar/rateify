@@ -371,4 +371,106 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('§16.2 keypad spacing and space-filling rule (Batch 03d)', () {
+    const smallPhone = Size(320, 568);
+
+    Rect buttonRectFor(WidgetTester tester, Finder labelOrIconFinder) {
+      final material = find
+          .ancestor(of: labelOrIconFinder, matching: find.byType(Material))
+          .first;
+      return tester.getRect(material);
+    }
+
+    testWidgets(
+      'TC-CONV-031: no dead gap between the tile section and the keypad, at '
+      '2-3 tiles on a small phone viewport',
+      (tester) async {
+        await pumpConverterPage(
+          tester,
+          selectedConverterCurrencies: const ['USD', 'EUR', 'JPY'],
+          surfaceSize: smallPhone,
+        );
+
+        final addCurrencyBottom = tester
+            .getBottomLeft(find.text('Add currency'))
+            .dy;
+        final keypadTop = tester.getTopLeft(find.byType(CustomKeypad)).dy;
+        final gap = keypadTop - addCurrencyBottom;
+
+        expect(
+          gap,
+          inInclusiveRange(0, 40),
+          reason:
+              'gap between the tile section and the keypad should be a small, '
+              'intentional margin, not a large dead space (measured: $gap)',
+        );
+
+        // Keypad should occupy meaningfully more than a token sliver of the
+        // remaining space — i.e. it's actually the flexible/expanding
+        // element, not a small fixed block with room to spare above it.
+        final screenHeight = smallPhone.height;
+        final keypadHeight = tester.getSize(find.byType(CustomKeypad)).height;
+        expect(
+          keypadHeight,
+          greaterThan(screenHeight * 0.35),
+          reason:
+              'keypad should expand to fill the remaining space, not stay small',
+        );
+
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'TC-CONV-031: every keypad button has clear visible spacing from its neighbors',
+      (tester) async {
+        await pumpConverterPage(tester, surfaceSize: smallPhone);
+
+        final clearRect = buttonRectFor(tester, find.text('C'));
+        final backspaceRect = buttonRectFor(
+          tester,
+          find.byIcon(Icons.backspace_outlined),
+        );
+        final sevenRect = buttonRectFor(tester, find.text('7'));
+        final eightRect = buttonRectFor(tester, find.text('8'));
+        final fourRect = buttonRectFor(tester, find.text('4'));
+
+        // Horizontal gap within the same row (C | backspace, and 7 | 8).
+        expect(
+          backspaceRect.left - clearRect.right,
+          greaterThan(2),
+          reason: 'C and backspace must not visually merge into one block',
+        );
+        expect(
+          eightRect.left - sevenRect.right,
+          greaterThan(2),
+          reason: '7 and 8 must not visually merge into one block',
+        );
+
+        // Vertical gap between rows (7 | 4).
+        expect(
+          fourRect.top - sevenRect.bottom,
+          greaterThan(2),
+          reason: 'rows must not visually merge into one block',
+        );
+      },
+    );
+
+    testWidgets(
+      'TC-CONV-031: keypad buttons grew back from the Batch 03c 44px low-water mark '
+      'now that the tile section no longer eats unnecessary space',
+      (tester) async {
+        await pumpConverterPage(tester, surfaceSize: smallPhone);
+
+        final clearRect = buttonRectFor(tester, find.text('C'));
+        expect(
+          clearRect.height,
+          greaterThanOrEqualTo(44),
+          reason:
+              'button height should be at least as comfortable as the Batch 03c baseline',
+        );
+      },
+    );
+  });
 }

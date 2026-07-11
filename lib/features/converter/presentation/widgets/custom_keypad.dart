@@ -8,6 +8,15 @@ import '../../../../core/theme/app_typography.dart';
 /// Purely a grid of buttons relaying taps upward — every callback here maps
 /// 1:1 to a `ConverterController` method, which is the only place that
 /// calls into `KeypadInputParser`. No parsing logic lives in this widget.
+///
+/// Keypad spacing and space-filling rule (§16.2, added Batch 03d): this
+/// widget expects to be given a bounded height by its parent (e.g. wrapped
+/// in `Expanded`) and fills it — each of the 5 rows is an `Expanded` row
+/// within this widget's own `Column`, so button height scales up with
+/// whatever space is actually available, rather than staying at a fixed
+/// small size with unused space above it. A consistent, clearly-visible
+/// gap separates every row and every button in a row — buttons must read
+/// as distinct individual keys, never a merged block.
 class CustomKeypad extends StatelessWidget {
   const CustomKeypad({
     super.key,
@@ -28,53 +37,56 @@ class CustomKeypad extends StatelessWidget {
     ['1', '2', '3'],
   ];
 
+  Widget _buttonRow(List<Widget> buttons) {
+    return Expanded(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < buttons.length; i++) ...[
+            if (i != 0) const SizedBox(width: UiConstants.spaceSm),
+            buttons[i],
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _KeypadButton(label: 'C', onTap: onClear, isAction: true),
-            ),
-            const SizedBox(width: UiConstants.spaceSm),
-            Expanded(
-              child: _KeypadButton(
-                icon: Icons.backspace_outlined,
-                onTap: onBackspace,
-                isAction: true,
-              ),
-            ),
-          ],
-        ),
-        for (final row in _digitRows)
-          Row(
-            children: [
-              for (final digit in row) ...[
-                Expanded(
-                  child: _KeypadButton(
-                    label: digit,
-                    onTap: () => onDigit(digit),
-                  ),
-                ),
-                if (digit != row.last)
-                  const SizedBox(width: UiConstants.spaceSm),
-              ],
-            ],
+        _buttonRow([
+          Expanded(
+            child: _KeypadButton(label: 'C', onTap: onClear, isAction: true),
           ),
-        Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: _KeypadButton(label: '0', onTap: () => onDigit('0')),
+          Expanded(
+            child: _KeypadButton(
+              icon: Icons.backspace_outlined,
+              onTap: onBackspace,
+              isAction: true,
             ),
-            const SizedBox(width: UiConstants.spaceSm),
-            Expanded(
-              child: _KeypadButton(label: '.', onTap: onDecimal),
-            ),
-          ],
-        ),
+          ),
+        ]),
+        const SizedBox(height: UiConstants.spaceSm),
+        for (final row in _digitRows) ...[
+          _buttonRow([
+            for (final digit in row)
+              Expanded(
+                child: _KeypadButton(label: digit, onTap: () => onDigit(digit)),
+              ),
+          ]),
+          const SizedBox(height: UiConstants.spaceSm),
+        ],
+        _buttonRow([
+          Expanded(
+            flex: 2,
+            child: _KeypadButton(label: '0', onTap: () => onDigit('0')),
+          ),
+          Expanded(
+            child: _KeypadButton(label: '.', onTap: onDecimal),
+          ),
+        ]),
       ],
     );
   }
@@ -101,36 +113,27 @@ class _KeypadButton extends StatelessWidget {
     final theme = Theme.of(context);
     final onSurface = theme.colorScheme.onSurface;
 
-    return Padding(
-      // Real device/browser testing (§16.1, Batch 03c) showed the compact
-      // tile redesign alone wasn't quite enough headroom on a 320x568
-      // screen once actual downloaded fonts (taller than the test
-      // harness's fallback font) are accounted for — this keypad is
-      // slightly tighter too (56->48 per button) to close that gap with
-      // margin, while staying at/above Material's 48dp minimum touch target.
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Material(
-        color: theme.colorScheme.surfaceContainerHighest,
+    // No fixed height here — this button fills whatever its parent
+    // Expanded row gives it, so it scales with the keypad's own available
+    // space instead of staying at a fixed small size (§16.2).
+    return Material(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(UiConstants.smallButtonRadius),
+      child: InkWell(
         borderRadius: BorderRadius.circular(UiConstants.smallButtonRadius),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(UiConstants.smallButtonRadius),
-          onTap: onTap,
-          child: SizedBox(
-            height: 44,
-            child: Center(
-              child: icon != null
-                  ? Icon(
-                      icon,
-                      color: onSurface.withValues(alpha: isAction ? 0.7 : 1),
-                    )
-                  : Text(
-                      label!,
-                      style: AppTypography.title(
-                        color: onSurface.withValues(alpha: isAction ? 0.7 : 1),
-                      ),
-                    ),
-            ),
-          ),
+        onTap: onTap,
+        child: Center(
+          child: icon != null
+              ? Icon(
+                  icon,
+                  color: onSurface.withValues(alpha: isAction ? 0.7 : 1),
+                )
+              : Text(
+                  label!,
+                  style: AppTypography.title(
+                    color: onSurface.withValues(alpha: isAction ? 0.7 : 1),
+                  ),
+                ),
         ),
       ),
     );

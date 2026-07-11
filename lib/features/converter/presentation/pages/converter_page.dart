@@ -128,13 +128,14 @@ class _ConverterBody extends ConsumerWidget {
       appSettingsProvider.select((settings) => settings.numberFormatPreference),
     );
 
-    // The tile list (+ its timestamp label and "Add currency" button) is the
-    // ONLY scrollable/flexible region on this page. It lives inside Expanded
-    // so it can never push the keypad off-screen or force the whole page to
-    // scroll; a SingleChildScrollView inside that Expanded lets the tile
-    // section itself scroll if it doesn't fit (e.g. many tiles, or a very
-    // short device), while the keypad below stays outside any scroll view,
-    // in its own fixed-height region that Flutter always lays out in full.
+    // Keypad space-filling rule (§16.2, Batch 03d): the tile section hugs
+    // its own content height — `Flexible` (loose fit), unlike `Expanded`
+    // (tight fit), lets the SingleChildScrollView size itself to content
+    // rather than being forced to fill all available space, which was
+    // creating a dead gap above the keypad when there were only 2-3 tiles.
+    // It still scrolls internally if 8 tiles' worth of content exceeds
+    // whatever room is actually available. The keypad is now the `Expanded`
+    // element instead, growing to fill whatever's left.
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: UiConstants.spaceMd,
@@ -142,9 +143,10 @@ class _ConverterBody extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (state.rateSnapshot != null)
@@ -206,12 +208,14 @@ class _ConverterBody extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: UiConstants.spaceXs),
-          CustomKeypad(
-            onDigit: notifier.appendDigit,
-            onDecimal: notifier.appendDecimalSeparator,
-            onBackspace: notifier.backspace,
-            onClear: notifier.clear,
+          const SizedBox(height: UiConstants.spaceSm),
+          Expanded(
+            child: CustomKeypad(
+              onDigit: notifier.appendDigit,
+              onDecimal: notifier.appendDecimalSeparator,
+              onBackspace: notifier.backspace,
+              onClear: notifier.clear,
+            ),
           ),
         ],
       ),
