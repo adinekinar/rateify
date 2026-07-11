@@ -57,7 +57,9 @@ class RateSnapshotModel {
   /// Rates from [baseCurrency] to each target currency Frankfurter supports.
   /// Currencies with no Frankfurter rate simply have no entry here — callers
   /// must handle a missing key, not assume every bundled reference currency
-  /// is present (see Batch 02 summary for which ones are currently absent).
+  /// is present. `core/constants/currency_reference.dart` is trimmed to
+  /// exactly the currencies known to resolve, so as of Batch 03 this should
+  /// only matter if that list is ever expanded without re-verifying.
   final Map<String, double> rates;
   final DateTime fetchedAt;
   final RateSourceStatus sourceStatus;

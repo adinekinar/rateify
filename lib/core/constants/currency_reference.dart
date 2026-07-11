@@ -11,8 +11,16 @@ class CurrencyInfo {
 /// Curated, bundled list of common ISO 4217 currencies for the onboarding
 /// and settings currency pickers.
 ///
-/// This is a static reference list, not fetched from any API — the
-/// exchange-rate data source (Batch 02) may later reconcile against it.
+/// This is a static reference list, not fetched from any API.
+///
+/// **Trimmed in Batch 03** to only currencies Frankfurter actually returns a
+/// rate for (verified live against `api.frankfurter.dev/v1/latest?base=USD`
+/// on 2026-07-11), since the picker must only ever offer currencies that
+/// will resolve to a real rate. Frankfurter is built on ECB reference
+/// rates, which do not cover the following — removed from the original
+/// Batch 01 list of 41: `RUB, TWD, CLP, AED, SAR, VND, PKR, BDT, NGN, EGP,
+/// KES, COP` (12 currencies). If Frankfurter's supported-currency set ever
+/// changes, re-run the same live check before re-adding any of these.
 abstract final class CurrencyReference {
   static const List<CurrencyInfo> all = [
     CurrencyInfo(code: 'USD', displayName: 'US Dollar'),
@@ -31,11 +39,9 @@ abstract final class CurrencyReference {
     CurrencyInfo(code: 'NOK', displayName: 'Norwegian Krone'),
     CurrencyInfo(code: 'MXN', displayName: 'Mexican Peso'),
     CurrencyInfo(code: 'INR', displayName: 'Indian Rupee'),
-    CurrencyInfo(code: 'RUB', displayName: 'Russian Ruble'),
     CurrencyInfo(code: 'ZAR', displayName: 'South African Rand'),
     CurrencyInfo(code: 'TRY', displayName: 'Turkish Lira'),
     CurrencyInfo(code: 'BRL', displayName: 'Brazilian Real'),
-    CurrencyInfo(code: 'TWD', displayName: 'New Taiwan Dollar'),
     CurrencyInfo(code: 'DKK', displayName: 'Danish Krone'),
     CurrencyInfo(code: 'PLN', displayName: 'Polish Zloty'),
     CurrencyInfo(code: 'THB', displayName: 'Thai Baht'),
@@ -43,18 +49,8 @@ abstract final class CurrencyReference {
     CurrencyInfo(code: 'HUF', displayName: 'Hungarian Forint'),
     CurrencyInfo(code: 'CZK', displayName: 'Czech Koruna'),
     CurrencyInfo(code: 'ILS', displayName: 'Israeli New Shekel'),
-    CurrencyInfo(code: 'CLP', displayName: 'Chilean Peso'),
     CurrencyInfo(code: 'PHP', displayName: 'Philippine Peso'),
-    CurrencyInfo(code: 'AED', displayName: 'UAE Dirham'),
-    CurrencyInfo(code: 'SAR', displayName: 'Saudi Riyal'),
     CurrencyInfo(code: 'MYR', displayName: 'Malaysian Ringgit'),
     CurrencyInfo(code: 'RON', displayName: 'Romanian Leu'),
-    CurrencyInfo(code: 'VND', displayName: 'Vietnamese Dong'),
-    CurrencyInfo(code: 'PKR', displayName: 'Pakistani Rupee'),
-    CurrencyInfo(code: 'BDT', displayName: 'Bangladeshi Taka'),
-    CurrencyInfo(code: 'NGN', displayName: 'Nigerian Naira'),
-    CurrencyInfo(code: 'EGP', displayName: 'Egyptian Pound'),
-    CurrencyInfo(code: 'KES', displayName: 'Kenyan Shilling'),
-    CurrencyInfo(code: 'COP', displayName: 'Colombian Peso'),
   ];
 }

@@ -38,6 +38,14 @@ class AppSettingsController extends Notifier<AppSettings> {
     _persist(state.copyWith(alertCheckFrequency: frequency));
   }
 
+  /// Called by the converter feature after a reorder, add, or remove —
+  /// §3.2's "currency order must persist across app sessions". Distinct
+  /// from [completeOnboardingWithHomeCurrency]: this never touches
+  /// `homeCurrency`, only the tile list itself.
+  void updateSelectedConverterCurrencies(List<String> currencyCodes) {
+    _persist(state.copyWith(selectedConverterCurrencies: currencyCodes));
+  }
+
   /// Called only by onboarding: seeds the home currency and the initial
   /// tile pair together (§3.2a) in one persisted write. Never called from
   /// the Settings page — changing home currency later must not disturb an
