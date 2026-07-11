@@ -15,8 +15,9 @@ import '../../../../core/theme/app_typography.dart';
 /// within this widget's own `Column`, so button height scales up with
 /// whatever space is actually available, rather than staying at a fixed
 /// small size with unused space above it. A consistent, clearly-visible
-/// gap separates every row and every button in a row — buttons must read
-/// as distinct individual keys, never a merged block.
+/// gap (`UiConstants.gapSm`, the §15.6 minimum) separates every row and
+/// every button in a row — buttons must read as distinct individual keys,
+/// never a merged block.
 class CustomKeypad extends StatelessWidget {
   const CustomKeypad({
     super.key,
@@ -43,7 +44,7 @@ class CustomKeypad extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < buttons.length; i++) ...[
-            if (i != 0) const SizedBox(width: UiConstants.spaceSm),
+            if (i != 0) const SizedBox(width: UiConstants.gapSm),
             buttons[i],
           ],
         ],
@@ -68,7 +69,7 @@ class CustomKeypad extends StatelessWidget {
             ),
           ),
         ]),
-        const SizedBox(height: UiConstants.spaceSm),
+        const SizedBox(height: UiConstants.gapSm),
         for (final row in _digitRows) ...[
           _buttonRow([
             for (final digit in row)
@@ -76,7 +77,7 @@ class CustomKeypad extends StatelessWidget {
                 child: _KeypadButton(label: digit, onTap: () => onDigit(digit)),
               ),
           ]),
-          const SizedBox(height: UiConstants.spaceSm),
+          const SizedBox(height: UiConstants.gapSm),
         ],
         _buttonRow([
           Expanded(

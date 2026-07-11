@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rateify/core/constants/ui_constants.dart';
 import 'package:rateify/core/formatting/number_formatter.dart';
 import 'package:rateify/features/benchmarks/domain/entities/benchmark_item.dart';
 import 'package:rateify/features/benchmarks/presentation/providers/benchmark_providers.dart';
+import 'package:rateify/features/benchmarks/presentation/widgets/benchmark_comparison_card.dart';
 import 'package:rateify/features/converter/data/models/rate_snapshot_model.dart';
 import 'package:rateify/features/converter/presentation/pages/converter_page.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_providers.dart';
@@ -399,11 +401,17 @@ void main() {
           surfaceSize: smallPhone,
         );
 
-        final addCurrencyBottom = tester
-            .getBottomLeft(find.text('Add currency'))
+        // Measure the tile section's own allocated/rendered region (the
+        // `SingleChildScrollView`'s box), not "Add currency"'s position —
+        // §15.6 (Batch 04b) permits the tile section to scroll internally
+        // once its content (now with more generous spacing) outgrows the
+        // space Flexible actually gave it, so content position alone is no
+        // longer a reliable proxy for where that allocated region ends.
+        final tileSectionBottom = tester
+            .getBottomLeft(find.byType(SingleChildScrollView).first)
             .dy;
         final keypadTop = tester.getTopLeft(find.byType(CustomKeypad)).dy;
-        final gap = keypadTop - addCurrencyBottom;
+        final gap = keypadTop - tileSectionBottom;
 
         expect(
           gap,
@@ -560,5 +568,215 @@ void main() {
         expect(find.text('Setara 3 Nasi Padang'), findsOneWidget);
       },
     );
+  });
+
+  group('§15.6 Spacing Scale — minimum gaps and padding (Batch 04b)', () {
+    const smallPhone = Size(320, 568);
+    const standardPhone = Size(375, 812);
+
+    BenchmarkItem benchmark({required String name, double price = 16000}) {
+      final now = DateTime(2026);
+      return BenchmarkItem(
+        id: 'b-$name',
+        name: name,
+        price: price,
+        currencyCode: 'IDR',
+        isActive: true,
+        createdAt: now,
+        updatedAt: now,
+      );
+    }
+
+    Rect containerRectAncestorOf(WidgetTester tester, Finder textOrIcon) {
+      return tester.getRect(
+        find.ancestor(of: textOrIcon, matching: find.byType(Container)).first,
+      );
+    }
+
+    EdgeInsets containerPaddingAncestorOf(
+      WidgetTester tester,
+      Finder textOrIcon,
+    ) {
+      final container = tester.widget<Container>(
+        find.ancestor(of: textOrIcon, matching: find.byType(Container)).first,
+      );
+      return container.padding! as EdgeInsets;
+    }
+
+    Rect buttonRectFor(WidgetTester tester, Finder labelOrIconFinder) {
+      final material = find
+          .ancestor(of: labelOrIconFinder, matching: find.byType(Material))
+          .first;
+      return tester.getRect(material);
+    }
+
+    for (final viewport in [smallPhone, standardPhone]) {
+      testWidgets(
+        'TC-CONV-032: every adjacent pair keeps at least the gapSm minimum, '
+        'at ${viewport.width.toInt()}x${viewport.height.toInt()}',
+        (tester) async {
+          await pumpConverterPage(
+            tester,
+            selectedConverterCurrencies: const ['USD', 'EUR', 'JPY'],
+            initialBenchmarks: [benchmark(name: 'Nasi Padang')],
+            surfaceSize: viewport,
+          );
+
+          // Give the active tile a nonzero amount so the benchmark card
+          // actually renders content (and thus has a real, measurable
+          // rect) rather than collapsing to `SizedBox.shrink()`.
+          await tester.tap(find.text('5'));
+          await tester.pumpAndSettle();
+
+          // --- Gap between every adjacent tile ---
+          final tileRects = tester
+              .widgetList<CurrencyInputTile>(find.byType(CurrencyInputTile))
+              .map(
+                (tile) => tester.getRect(
+                  find.byWidgetPredicate((w) => identical(w, tile)),
+                ),
+              )
+              .toList();
+          expect(tileRects, hasLength(3));
+          for (var i = 0; i < tileRects.length - 1; i++) {
+            final gap = tileRects[i + 1].top - tileRects[i].bottom;
+            expect(
+              gap,
+              greaterThanOrEqualTo(UiConstants.gapSm),
+              reason:
+                  'gap between tile $i and tile ${i + 1} must be at least '
+                  'gapSm (${UiConstants.gapSm}px), measured: $gap',
+            );
+          }
+
+          // --- Gap between the last tile and the benchmark card ---
+          final cardRect = tester.getRect(find.byType(BenchmarkComparisonCard));
+          final lastTileToCardGap = cardRect.top - tileRects.last.bottom;
+          expect(
+            lastTileToCardGap,
+            greaterThanOrEqualTo(UiConstants.gapSm),
+            reason:
+                'gap between the last tile and the benchmark card must be '
+                'at least gapSm (${UiConstants.gapSm}px), measured: '
+                '$lastTileToCardGap',
+          );
+
+          // --- Gap between the benchmark card and the Add currency row ---
+          final addCurrencyRect = containerRectAncestorOf(
+            tester,
+            find.text('Add currency'),
+          );
+          final cardToAddCurrencyGap = addCurrencyRect.top - cardRect.bottom;
+          expect(
+            cardToAddCurrencyGap,
+            greaterThanOrEqualTo(UiConstants.gapSm),
+            reason:
+                'gap between the benchmark card and the Add currency row '
+                'must be at least gapSm (${UiConstants.gapSm}px), measured: '
+                '$cardToAddCurrencyGap',
+          );
+
+          // --- Gap between every keypad button, in the row and between rows ---
+          final clearRect = buttonRectFor(tester, find.text('C'));
+          final backspaceRect = buttonRectFor(
+            tester,
+            find.byIcon(Icons.backspace_outlined),
+          );
+          final sevenRect = buttonRectFor(tester, find.text('7'));
+          final eightRect = buttonRectFor(tester, find.text('8'));
+          final fourRect = buttonRectFor(tester, find.text('4'));
+
+          expect(
+            backspaceRect.left - clearRect.right,
+            greaterThanOrEqualTo(UiConstants.gapSm),
+            reason: 'C and backspace must keep at least gapSm apart',
+          );
+          expect(
+            eightRect.left - sevenRect.right,
+            greaterThanOrEqualTo(UiConstants.gapSm),
+            reason: '7 and 8 must keep at least gapSm apart',
+          );
+          expect(
+            fourRect.top - sevenRect.bottom,
+            greaterThanOrEqualTo(UiConstants.gapSm),
+            reason: 'row 1 and row 2 must keep at least gapSm apart',
+          );
+
+          expect(tester.takeException(), isNull);
+        },
+      );
+
+      testWidgets(
+        'TC-CONV-032: every tile/card keeps at least the gapMd internal '
+        'padding, at ${viewport.width.toInt()}x${viewport.height.toInt()}',
+        (tester) async {
+          await pumpConverterPage(
+            tester,
+            selectedConverterCurrencies: const ['USD', 'EUR', 'JPY'],
+            initialBenchmarks: [benchmark(name: 'Nasi Padang')],
+            surfaceSize: viewport,
+          );
+          await tester.tap(find.text('5'));
+          await tester.pumpAndSettle();
+
+          // Compact (inactive) tile.
+          final compactTile = tester
+              .widgetList<CurrencyInputTile>(find.byType(CurrencyInputTile))
+              .firstWhere((tile) => !tile.isActive);
+          final compactContainer = tester.widget<AnimatedContainer>(
+            find.descendant(
+              of: find.byWidgetPredicate((w) => identical(w, compactTile)),
+              matching: find.byType(AnimatedContainer),
+            ),
+          );
+          final compactPadding = compactContainer.padding! as EdgeInsets;
+          expect(
+            compactPadding.top,
+            greaterThanOrEqualTo(UiConstants.gapMd),
+            reason: 'compact tile top padding must be at least gapMd (12px)',
+          );
+          expect(
+            compactPadding.bottom,
+            greaterThanOrEqualTo(UiConstants.gapMd),
+            reason: 'compact tile bottom padding must be at least gapMd (12px)',
+          );
+
+          // Benchmark comparison card.
+          final cardPadding = containerPaddingAncestorOf(
+            tester,
+            find.textContaining('Setara'),
+          );
+          expect(
+            cardPadding.top,
+            greaterThanOrEqualTo(UiConstants.gapMd),
+            reason: 'benchmark card top padding must be at least gapMd (12px)',
+          );
+          expect(
+            cardPadding.bottom,
+            greaterThanOrEqualTo(UiConstants.gapMd),
+            reason:
+                'benchmark card bottom padding must be at least gapMd (12px)',
+          );
+
+          // Add currency row.
+          final addCurrencyPadding = containerPaddingAncestorOf(
+            tester,
+            find.text('Add currency'),
+          );
+          expect(
+            addCurrencyPadding.top,
+            greaterThanOrEqualTo(UiConstants.gapMd),
+            reason:
+                'Add currency row top padding must be at least gapMd (12px)',
+          );
+          expect(
+            addCurrencyPadding.bottom,
+            greaterThanOrEqualTo(UiConstants.gapMd),
+            reason:
+                'Add currency row bottom padding must be at least gapMd (12px)',
+          );
+        },
+      );
+    }
   });
 }

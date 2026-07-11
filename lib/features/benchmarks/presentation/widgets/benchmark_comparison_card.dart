@@ -36,9 +36,11 @@ class BenchmarkComparisonCard extends StatelessWidget {
             : () => _showRemaining(context, remaining),
         child: Container(
           width: double.infinity,
+          // §15.6: at least `gapMd` (12px) internal padding so the
+          // comparison text never touches the card's edge.
           padding: const EdgeInsets.symmetric(
             horizontal: UiConstants.spaceMd,
-            vertical: UiConstants.spaceSm,
+            vertical: UiConstants.gapMd,
           ),
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.08),
@@ -51,7 +53,7 @@ class BenchmarkComparisonCard extends StatelessWidget {
                 size: 18,
                 color: AppColors.primary,
               ),
-              const SizedBox(width: UiConstants.spaceSm),
+              const SizedBox(width: UiConstants.gapSm),
               Expanded(
                 child: Text(
                   top.displayText,
@@ -63,7 +65,7 @@ class BenchmarkComparisonCard extends StatelessWidget {
                 ),
               ),
               if (remaining.isNotEmpty) ...[
-                const SizedBox(width: UiConstants.spaceSm),
+                const SizedBox(width: UiConstants.gapSm),
                 Text(
                   '+${remaining.length} more',
                   style: AppTypography.caption(

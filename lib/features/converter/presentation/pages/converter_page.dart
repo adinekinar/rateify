@@ -185,38 +185,50 @@ class _ConverterBody extends ConsumerWidget {
                             )
                           : '—';
 
-                      return CurrencyInputTile(
+                      // §15.6: the reorder key must live on the outermost
+                      // widget this itemBuilder returns, so the min-`gapSm`
+                      // gap between tiles is added here as a Padding
+                      // wrapper (carrying the key) rather than a sibling
+                      // SizedBox — `ReorderableListView` has no
+                      // separator-widget concept of its own.
+                      return Padding(
                         key: ValueKey(tile.id),
-                        currencyInfo: info,
-                        displayAmount: displayAmount,
-                        isActive: tile.isActiveInput,
-                        onTap: () => notifier.selectTile(tile.id),
-                        onLongPress: () => _showTileMenu(context, ref, tile),
-                        dragHandle: ReorderableDragStartListener(
-                          index: index,
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: UiConstants.spaceXs,
+                        padding: const EdgeInsets.only(
+                          bottom: UiConstants.gapSm,
+                        ),
+                        child: CurrencyInputTile(
+                          currencyInfo: info,
+                          displayAmount: displayAmount,
+                          isActive: tile.isActiveInput,
+                          onTap: () => notifier.selectTile(tile.id),
+                          onLongPress: () => _showTileMenu(context, ref, tile),
+                          dragHandle: ReorderableDragStartListener(
+                            index: index,
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: UiConstants.spaceXs,
+                              ),
+                              child: Icon(Icons.drag_handle, size: 18),
                             ),
-                            child: Icon(Icons.drag_handle, size: 18),
                           ),
                         ),
                       );
                     },
                   ),
                   // §4.1/TC-RPM-011: renders nothing at all when there are
-                  // no active benchmarks (or none have a resolvable rate),
-                  // so no extra spacing is reserved for it here — the card
-                  // itself collapses to zero height via `SizedBox.shrink()`
-                  // rather than needing a conditional gap around it.
+                  // no active benchmarks (or none have a resolvable rate) —
+                  // the card collapses to zero height via
+                  // `SizedBox.shrink()`. The last tile's own trailing
+                  // `gapSm` (above) already provides the minimum gap before
+                  // it (§15.6), so no separate gap is added here.
                   BenchmarkComparisonCard(results: state.benchmarkResults),
-                  const SizedBox(height: UiConstants.spaceSm),
+                  const SizedBox(height: UiConstants.gapSm),
                   _AddCurrencyRow(onTap: () => _addCurrency(context, ref)),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: UiConstants.spaceSm),
+          const SizedBox(height: UiConstants.gapSm),
           Expanded(
             child: CustomKeypad(
               onDigit: notifier.appendDigit,
@@ -252,9 +264,11 @@ class _AddCurrencyRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(UiConstants.currencyTileRadius),
         onTap: onTap,
         child: Container(
+          // §15.6: at least `gapMd` (12px) internal padding so the label
+          // never touches the container's edge.
           padding: const EdgeInsets.symmetric(
             horizontal: UiConstants.spaceMd,
-            vertical: 2,
+            vertical: UiConstants.gapMd,
           ),
           decoration: BoxDecoration(
             color: theme.colorScheme.surfaceContainerHighest,
@@ -263,7 +277,7 @@ class _AddCurrencyRow extends StatelessWidget {
           child: Row(
             children: [
               const Icon(Icons.add, color: color, size: 18),
-              const SizedBox(width: UiConstants.spaceSm),
+              const SizedBox(width: UiConstants.gapSm),
               Text(
                 'Add currency',
                 style: AppTypography.section(

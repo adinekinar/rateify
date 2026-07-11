@@ -60,12 +60,16 @@ class CurrencyInputTile extends StatelessWidget {
           curve: Curves.easeOutCubic,
           padding: isActive
               ? const EdgeInsets.all(UiConstants.spaceMd)
-              // Deliberately tighter than the spaceXs token — this is the
-              // compact single-row layout (§16.1), where every pixel of
-              // vertical padding is directly traded for scroll-free tiles.
+              // §15.6 (Batch 04b): `gapMd` (12px) is a hard minimum floor
+              // for internal padding, even in this compact single-row
+              // layout (§16.1) — Batch 03c originally squeezed this down
+              // to 2px to guarantee zero scroll at low tile counts, but
+              // §15.6 explicitly reverses that priority: a small amount of
+              // scroll is an acceptable tradeoff, an edge-to-edge tile is
+              // not.
               : const EdgeInsets.symmetric(
                   horizontal: UiConstants.spaceMd,
-                  vertical: 2,
+                  vertical: UiConstants.gapMd,
                 ),
           decoration: BoxDecoration(
             color: isActive
