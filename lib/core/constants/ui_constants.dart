@@ -12,7 +12,7 @@ abstract final class UiConstants {
   // surfaces).
   static const double floatingNavBarRadius = 28;
   static const double floatingNavBarIndicatorRadius = 20;
-  static const double floatingNavBarHeight = 64;
+  static const double floatingNavBarHeight = 72;
 
   // Spacing scale
   static const double spaceXs = 4;
