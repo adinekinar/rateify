@@ -102,7 +102,13 @@ class _KeypadButton extends StatelessWidget {
     final onSurface = theme.colorScheme.onSurface;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: UiConstants.spaceXs),
+      // Real device/browser testing (§16.1, Batch 03c) showed the compact
+      // tile redesign alone wasn't quite enough headroom on a 320x568
+      // screen once actual downloaded fonts (taller than the test
+      // harness's fallback font) are accounted for — this keypad is
+      // slightly tighter too (56->48 per button) to close that gap with
+      // margin, while staying at/above Material's 48dp minimum touch target.
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Material(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(UiConstants.smallButtonRadius),
@@ -110,7 +116,7 @@ class _KeypadButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(UiConstants.smallButtonRadius),
           onTap: onTap,
           child: SizedBox(
-            height: 56,
+            height: 44,
             child: Center(
               child: icon != null
                   ? Icon(

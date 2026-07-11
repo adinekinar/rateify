@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/currency_reference.dart';
 import '../../../../core/constants/ui_constants.dart';
 import '../../../../core/formatting/number_formatter.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_typography.dart';
 import '../../../settings/presentation/providers/settings_providers.dart';
 import '../../domain/entities/currency_tile_state.dart';
 import '../providers/converter_controller.dart';
@@ -25,6 +27,7 @@ class ConverterPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Converter'),
+        toolbarHeight: 44,
         actions: [
           if (isRefreshing)
             const Padding(
@@ -133,7 +136,10 @@ class _ConverterBody extends ConsumerWidget {
     // short device), while the keypad below stays outside any scroll view,
     // in its own fixed-height region that Flutter always lays out in full.
     return Padding(
-      padding: const EdgeInsets.all(UiConstants.spaceMd),
+      padding: const EdgeInsets.symmetric(
+        horizontal: UiConstants.spaceMd,
+        vertical: UiConstants.spaceXs,
+      ),
       child: Column(
         children: [
           Expanded(
@@ -142,14 +148,9 @@ class _ConverterBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (state.rateSnapshot != null)
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        bottom: UiConstants.spaceSm,
-                      ),
-                      child: RateTimestampLabel(
-                        snapshot: state.rateSnapshot!,
-                        errorMessage: state.errorMessage,
-                      ),
+                    RateTimestampLabel(
+                      snapshot: state.rateSnapshot!,
+                      errorMessage: state.errorMessage,
                     ),
                   ReorderableListView.builder(
                     // Nested inside the outer SingleChildScrollView, so this
@@ -181,39 +182,31 @@ class _ConverterBody extends ConsumerWidget {
                             )
                           : '—';
 
-                      return Padding(
+                      return CurrencyInputTile(
                         key: ValueKey(tile.id),
-                        padding: const EdgeInsets.only(
-                          bottom: UiConstants.spaceSm,
-                        ),
-                        child: CurrencyInputTile(
-                          currencyInfo: info,
-                          displayAmount: displayAmount,
-                          isActive: tile.isActiveInput,
-                          onTap: () => notifier.selectTile(tile.id),
-                          onLongPress: () => _showTileMenu(context, ref, tile),
-                          dragHandle: ReorderableDragStartListener(
-                            index: index,
-                            child: const Padding(
-                              padding: EdgeInsets.all(UiConstants.spaceSm),
-                              child: Icon(Icons.drag_handle),
+                        currencyInfo: info,
+                        displayAmount: displayAmount,
+                        isActive: tile.isActiveInput,
+                        onTap: () => notifier.selectTile(tile.id),
+                        onLongPress: () => _showTileMenu(context, ref, tile),
+                        dragHandle: ReorderableDragStartListener(
+                          index: index,
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: UiConstants.spaceXs,
                             ),
+                            child: Icon(Icons.drag_handle, size: 18),
                           ),
                         ),
                       );
                     },
                   ),
-                  const SizedBox(height: UiConstants.spaceSm),
-                  OutlinedButton.icon(
-                    onPressed: () => _addCurrency(context, ref),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add currency'),
-                  ),
+                  _AddCurrencyRow(onTap: () => _addCurrency(context, ref)),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: UiConstants.spaceMd),
+          const SizedBox(height: UiConstants.spaceXs),
           CustomKeypad(
             onDigit: notifier.appendDigit,
             onDecimal: notifier.appendDecimalSeparator,
@@ -221,6 +214,53 @@ class _ConverterBody extends ConsumerWidget {
             onClear: notifier.clear,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// §16.1 compact inactive tile rule: "add currency" is not a separate
+/// full-width button — it's a compact row the same height as a compact
+/// inactive tile, appended at the end of the tile list, opening the exact
+/// same picker sheet (§16.4) as before. Only what triggers the picker
+/// changed here, not the picker itself.
+class _AddCurrencyRow extends StatelessWidget {
+  const _AddCurrencyRow({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    const color = AppColors.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(UiConstants.currencyTileRadius),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: UiConstants.spaceMd,
+            vertical: 2,
+          ),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(UiConstants.currencyTileRadius),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.add, color: color, size: 18),
+              const SizedBox(width: UiConstants.spaceSm),
+              Text(
+                'Add currency',
+                style: AppTypography.section(
+                  color: color,
+                ).copyWith(height: 1.0),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

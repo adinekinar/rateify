@@ -235,13 +235,22 @@ void main() {
     },
   );
 
-  group('keypad always fits on-screen without scrolling to reach it', () {
+  group('§16.1 compact inactive tile — content fits without excess scrolling', () {
     // Real device sizes: a common modern phone, and a small older one that
-    // previously reproduced the bug (tiles' Expanded region collapsed
-    // toward zero, and — depending on layout — the keypad could be pushed
-    // out of the fixed-height region it's meant to always occupy).
+    // previously reproduced the Batch 03b bug (tiles' Expanded region
+    // collapsed toward zero on this size before the scroll-region fix).
     const realisticPhone = Size(375, 667); // iPhone SE (2020/2022) / iPhone 8
     const smallPhone = Size(320, 568); // iPhone SE (1st gen) — tight case
+    const eightTileCurrencies = [
+      'USD',
+      'EUR',
+      'JPY',
+      'GBP',
+      'AUD',
+      'CAD',
+      'CHF',
+      'CNY',
+    ];
 
     void expectKeypadFullyVisible(WidgetTester tester, Size screenSize) {
       final renderBox =
@@ -263,100 +272,102 @@ void main() {
       );
     }
 
+    double tileSectionMaxScrollExtent(WidgetTester tester) {
+      final scrollableState = tester.state<ScrollableState>(
+        find.byType(Scrollable).first,
+      );
+      return scrollableState.position.maxScrollExtent;
+    }
+
+    testWidgets('TC-CONV-029: 2 tiles on a small phone viewport (320x568) — zero '
+        'scrolling required for tiles or keypad', (tester) async {
+      await pumpConverterPage(tester, surfaceSize: smallPhone);
+
+      expect(find.byType(CurrencyInputTile), findsNWidgets(2));
+      expect(find.text('USD'), findsOneWidget);
+      expect(find.text('EUR'), findsOneWidget);
+      expectKeypadFullyVisible(tester, smallPhone);
+      expect(tester.takeException(), isNull);
+
+      // The whole point of the compact layout: at 2 tiles there should be
+      // nothing left to scroll at all.
+      expect(
+        tileSectionMaxScrollExtent(tester),
+        lessThanOrEqualTo(0.5),
+        reason:
+            '2 compact tiles + the add-currency row must fit with zero scrolling',
+      );
+    });
+
+    testWidgets(
+      'TC-CONV-030: 8 tiles on a small phone viewport — tile section may '
+      'scroll, keypad stays fixed and fully visible, inactive tiles are compact',
+      (tester) async {
+        await pumpConverterPage(
+          tester,
+          selectedConverterCurrencies: eightTileCurrencies,
+          surfaceSize: smallPhone,
+        );
+
+        // All 8 must actually be built (not skipped by a collapsed lazy
+        // list — the Batch 03b root cause) so the scroll view can reach them.
+        expect(find.byType(CurrencyInputTile), findsNWidgets(8));
+        expectKeypadFullyVisible(tester, smallPhone);
+        expect(tester.takeException(), isNull);
+
+        // With 8 tiles, some scrolling in the tile section is expected and
+        // acceptable per §16.1 — just confirm it's actually available.
+        expect(
+          tileSectionMaxScrollExtent(tester),
+          greaterThan(0),
+          reason:
+              '8 tiles should not all fit on a 320x568 screen — the tile '
+              'section should be scrollable',
+        );
+
+        // Inactive tiles use the compact single-row layout: significantly
+        // shorter than the active tile's comfortable stacked layout.
+        final activeTileHeight =
+            (tester.renderObject(
+                      find.byWidgetPredicate(
+                        (w) => w is CurrencyInputTile && w.isActive,
+                      ),
+                    )
+                    as RenderBox)
+                .size
+                .height;
+        final inactiveTileHeights = tester
+            .widgetList<CurrencyInputTile>(find.byType(CurrencyInputTile))
+            .where((tile) => !tile.isActive)
+            .map((tile) {
+              final element = find.byWidgetPredicate((w) => identical(w, tile));
+              return (tester.renderObject(element) as RenderBox).size.height;
+            });
+
+        for (final height in inactiveTileHeights) {
+          expect(
+            height,
+            lessThan(activeTileHeight * 0.7),
+            reason:
+                'compact inactive tiles must be noticeably shorter than the active tile',
+          );
+        }
+      },
+    );
+
     testWidgets('2 tiles, realistic phone size', (tester) async {
       await pumpConverterPage(tester, surfaceSize: realisticPhone);
       expectKeypadFullyVisible(tester, realisticPhone);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('8 tiles, realistic phone size', (tester) async {
       await pumpConverterPage(
         tester,
-        selectedConverterCurrencies: const [
-          'USD',
-          'EUR',
-          'JPY',
-          'GBP',
-          'AUD',
-          'CAD',
-          'CHF',
-          'CNY',
-        ],
+        selectedConverterCurrencies: eightTileCurrencies,
         surfaceSize: realisticPhone,
       );
       expectKeypadFullyVisible(tester, realisticPhone);
-    });
-
-    testWidgets('2 tiles, small phone size (previously reproduced the bug)', (
-      tester,
-    ) async {
-      await pumpConverterPage(tester, surfaceSize: smallPhone);
-      expectKeypadFullyVisible(tester, smallPhone);
-    });
-
-    testWidgets(
-      'on a tight screen, tiles remain built and scrollable rather than being '
-      'squeezed to zero height and vanishing entirely (the actual confirmed root '
-      'cause: the tile Expanded region could collapse toward 0, and a lazy '
-      'ReorderableListView.builder given ~0 height built no items at all — not '
-      'reachable by any scroll, since nothing wrapped the page in a scroll view)',
-      (tester) async {
-        await pumpConverterPage(tester, surfaceSize: smallPhone);
-
-        // Both tiles must actually be built (not skipped by a lazy list
-        // given a collapsed viewport) so the outer scroll view can reach them.
-        expect(find.byType(CurrencyInputTile), findsNWidgets(2));
-        expect(find.text('USD'), findsOneWidget);
-        expect(find.text('EUR'), findsOneWidget);
-
-        // And the tile section is wrapped in a genuinely scrollable region
-        // (not a fixed-size box silently clipping content with no way to
-        // reach it).
-        expect(find.byType(SingleChildScrollView), findsOneWidget);
-      },
-    );
-
-    testWidgets('8 tiles, small phone size', (tester) async {
-      await pumpConverterPage(
-        tester,
-        selectedConverterCurrencies: const [
-          'USD',
-          'EUR',
-          'JPY',
-          'GBP',
-          'AUD',
-          'CAD',
-          'CHF',
-          'CNY',
-        ],
-        surfaceSize: smallPhone,
-      );
-      expectKeypadFullyVisible(tester, smallPhone);
-    });
-
-    testWidgets('at 2 tiles, no debug RenderFlex overflow is reported', (
-      tester,
-    ) async {
-      await pumpConverterPage(tester, surfaceSize: realisticPhone);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('at 8 tiles, no debug RenderFlex overflow is reported', (
-      tester,
-    ) async {
-      await pumpConverterPage(
-        tester,
-        selectedConverterCurrencies: const [
-          'USD',
-          'EUR',
-          'JPY',
-          'GBP',
-          'AUD',
-          'CAD',
-          'CHF',
-          'CNY',
-        ],
-        surfaceSize: realisticPhone,
-      );
       expect(tester.takeException(), isNull);
     });
   });

@@ -72,11 +72,15 @@ class RateTimestampLabel extends StatelessWidget {
         errorMessage: errorMessage,
         now: now,
       ),
+      // A tighter line height than the shared caption default — this label
+      // sits in the tile section's tight vertical budget (§16.1 compact
+      // tile rule), so it shouldn't carry more line-box padding than its
+      // 12px text actually needs.
       style: AppTypography.caption(
         color: isUnavailable
             ? AppColors.danger
             : theme.colorScheme.onSurface.withValues(alpha: 0.6),
-      ),
+      ).copyWith(height: 1.0),
       textAlign: TextAlign.center,
     );
   }
