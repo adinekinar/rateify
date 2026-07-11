@@ -203,6 +203,7 @@ class _ConverterBody extends ConsumerWidget {
                       );
                     },
                   ),
+                  const SizedBox(height: UiConstants.spaceSm),
                   _AddCurrencyRow(onTap: () => _addCurrency(context, ref)),
                 ],
               ),
