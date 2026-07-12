@@ -5,11 +5,13 @@ import 'package:rateify/app.dart';
 import 'package:rateify/features/benchmarks/presentation/providers/benchmark_providers.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_providers.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
+import 'package:rateify/features/trips/presentation/providers/trip_providers.dart';
 import 'package:rateify/floating_nav_bar.dart';
 
 import 'test_helpers/fake_benchmark_repository.dart';
 import 'test_helpers/fake_exchange_rate_repository.dart';
 import 'test_helpers/fake_settings_repository.dart';
+import 'test_helpers/fake_trip_repository.dart';
 
 void main() {
   Widget buildApp({required bool onboardingCompleted}) {
@@ -24,6 +26,7 @@ void main() {
         benchmarkRepositoryProvider.overrideWithValue(
           FakeBenchmarkRepository(),
         ),
+        tripRepositoryProvider.overrideWithValue(FakeTripRepository()),
       ],
       child: const RateifyApp(),
     );

@@ -12,6 +12,8 @@ import 'features/converter/data/repositories/exchange_rate_repository_impl.dart'
 import 'features/converter/presentation/providers/converter_providers.dart';
 import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/settings/presentation/providers/settings_providers.dart';
+import 'features/trips/data/repositories/trip_repository_impl.dart';
+import 'features/trips/presentation/providers/trip_providers.dart';
 
 /// Composition root — the one place allowed to wire a concrete Hive-backed
 /// repository into a provider override (§18.8 only restricts the
@@ -37,6 +39,12 @@ Future<void> main() async {
   );
   final benchmarkRepository = HiveBenchmarkRepository(benchmarkBox);
 
+  final tripBox = await Hive.openBox<dynamic>(CacheConstants.tripBoxName);
+  final tripExpenseBox = await Hive.openBox<dynamic>(
+    CacheConstants.tripExpenseBoxName,
+  );
+  final tripRepository = HiveTripRepository(tripBox, tripExpenseBox);
+
   runApp(
     ProviderScope(
       overrides: [
@@ -45,6 +53,7 @@ Future<void> main() async {
           exchangeRateRepository,
         ),
         benchmarkRepositoryProvider.overrideWithValue(benchmarkRepository),
+        tripRepositoryProvider.overrideWithValue(tripRepository),
       ],
       child: const RateifyApp(),
     ),
