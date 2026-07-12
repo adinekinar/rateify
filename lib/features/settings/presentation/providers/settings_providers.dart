@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/formatting/number_formatter.dart';
+import '../../../alerts/presentation/providers/alert_providers.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/repositories/settings_repository.dart';
 
@@ -34,8 +35,14 @@ class AppSettingsController extends Notifier<AppSettings> {
     _persist(state.copyWith(numberFormatPreference: preference));
   }
 
+  /// §6.3 — persists the new frequency and reschedules the background
+  /// check task to match. `registerPeriodicTask` itself is what performs
+  /// the "cancel and re-register" (see
+  /// `AlertBackgroundScheduler.registerPeriodicTask`'s doc comment); there
+  /// is no separate cancel call needed here.
   void updateAlertCheckFrequency(Duration frequency) {
     _persist(state.copyWith(alertCheckFrequency: frequency));
+    ref.read(alertBackgroundSchedulerProvider).registerPeriodicTask(frequency);
   }
 
   /// Called by the converter feature after a reorder, add, or remove —

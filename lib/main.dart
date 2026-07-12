@@ -4,6 +4,10 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
 import 'core/constants/cache_constants.dart';
+import 'features/alerts/data/repositories/alert_repository_impl.dart';
+import 'features/alerts/data/services/local_notification_service.dart';
+import 'features/alerts/data/services/workmanager_alert_background_scheduler.dart';
+import 'features/alerts/presentation/providers/alert_providers.dart';
 import 'features/benchmarks/data/repositories/benchmark_repository_impl.dart';
 import 'features/benchmarks/presentation/providers/benchmark_providers.dart';
 import 'features/converter/data/datasources/exchange_rate_local_data_source.dart';
@@ -45,6 +49,25 @@ Future<void> main() async {
   );
   final tripRepository = HiveTripRepository(tripBox, tripExpenseBox);
 
+  final alertBox = await Hive.openBox<dynamic>(CacheConstants.alertBoxName);
+  final alertTriggerHistoryBox = await Hive.openBox<dynamic>(
+    CacheConstants.alertTriggerHistoryBoxName,
+  );
+  final alertRepository = HiveAlertRepository(alertBox, alertTriggerHistoryBox);
+
+  final notificationService = LocalNotificationService();
+  await notificationService.initialize();
+
+  // §6.3 — the background scheduler is initialized and given its first
+  // registration here, seeded from whatever frequency is already
+  // persisted; `AppSettingsController.updateAlertCheckFrequency` handles
+  // every reschedule after this point.
+  final backgroundScheduler = WorkmanagerAlertBackgroundScheduler();
+  await backgroundScheduler.initialize();
+  await backgroundScheduler.registerPeriodicTask(
+    settingsRepository.loadSettings().alertCheckFrequency,
+  );
+
   runApp(
     ProviderScope(
       overrides: [
@@ -54,6 +77,9 @@ Future<void> main() async {
         ),
         benchmarkRepositoryProvider.overrideWithValue(benchmarkRepository),
         tripRepositoryProvider.overrideWithValue(tripRepository),
+        alertRepositoryProvider.overrideWithValue(alertRepository),
+        alertNotificationServiceProvider.overrideWithValue(notificationService),
+        alertBackgroundSchedulerProvider.overrideWithValue(backgroundScheduler),
       ],
       child: const RateifyApp(),
     ),

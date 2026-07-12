@@ -2,19 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rateify/app.dart';
+import 'package:rateify/features/alerts/domain/entities/rate_alert.dart';
+import 'package:rateify/features/alerts/presentation/providers/alert_providers.dart';
 import 'package:rateify/features/benchmarks/presentation/providers/benchmark_providers.dart';
 import 'package:rateify/features/converter/presentation/providers/converter_providers.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
 import 'package:rateify/features/trips/presentation/providers/trip_providers.dart';
 import 'package:rateify/floating_nav_bar.dart';
 
+import 'test_helpers/fake_alert_notification_service.dart';
+import 'test_helpers/fake_alert_repository.dart';
 import 'test_helpers/fake_benchmark_repository.dart';
 import 'test_helpers/fake_exchange_rate_repository.dart';
 import 'test_helpers/fake_settings_repository.dart';
 import 'test_helpers/fake_trip_repository.dart';
 
 void main() {
-  Widget buildApp({required bool onboardingCompleted}) {
+  Widget buildApp({
+    required bool onboardingCompleted,
+    FakeAlertRepository? alertRepository,
+    FakeAlertNotificationService? alertNotificationService,
+  }) {
     return ProviderScope(
       overrides: [
         settingsRepositoryProvider.overrideWithValue(
@@ -27,6 +35,12 @@ void main() {
           FakeBenchmarkRepository(),
         ),
         tripRepositoryProvider.overrideWithValue(FakeTripRepository()),
+        alertRepositoryProvider.overrideWithValue(
+          alertRepository ?? FakeAlertRepository(),
+        ),
+        alertNotificationServiceProvider.overrideWithValue(
+          alertNotificationService ?? FakeAlertNotificationService(),
+        ),
       ],
       child: const RateifyApp(),
     );
@@ -92,4 +106,45 @@ void main() {
       3,
     );
   });
+
+  testWidgets(
+    'TC-ALERT-010: opening the app runs the alert check immediately, '
+    'independent of any background scheduler state',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final now = DateTime(2026, 7);
+      final alertRepository = FakeAlertRepository(
+        initialAlerts: [
+          RateAlert(
+            id: 'alert-1',
+            baseCurrency: 'USD',
+            quoteCurrency: 'JPY',
+            // The default FakeExchangeRateRepository snapshot has
+            // USD/JPY = 160, so this is already inside the trigger zone
+            // the moment the app opens.
+            targetRate: 150,
+            direction: AlertDirection.aboveTarget,
+            isActive: true,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        ],
+      );
+      final notificationService = FakeAlertNotificationService();
+
+      await tester.pumpWidget(
+        buildApp(
+          onboardingCompleted: true,
+          alertRepository: alertRepository,
+          alertNotificationService: notificationService,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(notificationService.shownNotifications, hasLength(1));
+      expect(alertRepository.getAllAlerts().single.isArmed, isFalse);
+    },
+  );
 }

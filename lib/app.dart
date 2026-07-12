@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/alerts/presentation/pages/alert_page.dart';
+import 'features/alerts/presentation/providers/alert_providers.dart';
 import 'features/converter/presentation/pages/converter_page.dart';
 import 'features/settings/domain/entities/app_settings.dart';
 import 'features/settings/presentation/pages/onboarding_page.dart';
@@ -54,15 +55,26 @@ class AppStartupGate extends ConsumerWidget {
 /// Bottom navigation shell with the 4 main tabs (§16.3): Converter, Trip,
 /// Alerts, Settings. Rate History is intentionally not a tab — it's accessed
 /// from currency tile detail per §7.4.
-class RootShell extends StatefulWidget {
+class RootShell extends ConsumerStatefulWidget {
   const RootShell({super.key});
 
   @override
-  State<RootShell> createState() => _RootShellState();
+  ConsumerState<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class _RootShellState extends ConsumerState<RootShell> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // §6.3/§20.5 — the reliable alert check: runs once whenever the app is
+    // opened (i.e. the main navigation shell is first built), independent
+    // of the best-effort Workmanager background scheduler. `ref.read`
+    // (not `watch`) is deliberate — this should fire exactly once per app
+    // open, not re-run on every `RootShell` rebuild.
+    ref.read(foregroundAlertCheckProvider);
+  }
 
   static const List<Widget> _tabs = [
     ConverterPage(),

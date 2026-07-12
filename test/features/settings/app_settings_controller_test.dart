@@ -1,17 +1,25 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rateify/core/formatting/number_formatter.dart';
+import 'package:rateify/features/alerts/presentation/providers/alert_providers.dart';
 import 'package:rateify/features/settings/domain/entities/app_settings.dart';
 import 'package:rateify/features/settings/presentation/providers/settings_providers.dart';
 
+import '../../test_helpers/fake_alert_background_scheduler.dart';
 import '../../test_helpers/fake_settings_repository.dart';
 
 void main() {
-  ProviderContainer buildContainer({AppSettings? initialSettings}) {
+  ProviderContainer buildContainer({
+    AppSettings? initialSettings,
+    FakeAlertBackgroundScheduler? alertBackgroundScheduler,
+  }) {
     final container = ProviderContainer(
       overrides: [
         settingsRepositoryProvider.overrideWithValue(
           FakeSettingsRepository(initialSettings: initialSettings),
+        ),
+        alertBackgroundSchedulerProvider.overrideWithValue(
+          alertBackgroundScheduler ?? FakeAlertBackgroundScheduler(),
         ),
       ],
     );
@@ -91,6 +99,34 @@ void main() {
         NumberFormatPreference.dotDecimalComma,
       );
       expect(settings.alertCheckFrequency, const Duration(hours: 1));
+    },
+  );
+
+  test(
+    'TC-ALERT-011: changing the alert check frequency reschedules the '
+    'background task with the new interval',
+    () {
+      final scheduler = FakeAlertBackgroundScheduler();
+      final container = buildContainer(alertBackgroundScheduler: scheduler);
+      container.read(appSettingsProvider);
+      final notifier = container.read(appSettingsProvider.notifier);
+
+      notifier.updateAlertCheckFrequency(const Duration(hours: 3));
+
+      expect(scheduler.registeredFrequencies, [const Duration(hours: 3)]);
+      expect(
+        container.read(appSettingsProvider).alertCheckFrequency,
+        const Duration(hours: 3),
+      );
+
+      // Changing it again reschedules again — each change is its own
+      // cancel-and-re-register, not accumulated state.
+      notifier.updateAlertCheckFrequency(const Duration(hours: 12));
+
+      expect(scheduler.registeredFrequencies, [
+        const Duration(hours: 3),
+        const Duration(hours: 12),
+      ]);
     },
   );
 }
