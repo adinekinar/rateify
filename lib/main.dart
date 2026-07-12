@@ -56,17 +56,28 @@ Future<void> main() async {
   final alertRepository = HiveAlertRepository(alertBox, alertTriggerHistoryBox);
 
   final notificationService = LocalNotificationService();
-  await notificationService.initialize();
-
-  // §6.3 — the background scheduler is initialized and given its first
-  // registration here, seeded from whatever frequency is already
-  // persisted; `AppSettingsController.updateAlertCheckFrequency` handles
-  // every reschedule after this point.
-  final backgroundScheduler = WorkmanagerAlertBackgroundScheduler();
-  await backgroundScheduler.initialize();
-  await backgroundScheduler.registerPeriodicTask(
-    settingsRepository.loadSettings().alertCheckFrequency,
+  // §20.9 — a plugin unsupported (or misconfigured) on the current
+  // platform must degrade that one feature gracefully, not crash boot.
+  await _initializePlugin(
+    'LocalNotificationService',
+    notificationService.initialize,
   );
+
+  // §6.3/§20.9 — the background scheduler is initialized and given its
+  // first registration here, seeded from whatever frequency is already
+  // persisted; `AppSettingsController.updateAlertCheckFrequency` handles
+  // every reschedule after this point. `WorkmanagerAlertBackgroundScheduler`
+  // already no-ops on web internally (workmanager has no web
+  // implementation), but this is wrapped too — the point of §20.9 is that
+  // *no* startup plugin call gets to take the whole app down, not just
+  // this specific one.
+  final backgroundScheduler = WorkmanagerAlertBackgroundScheduler();
+  await _initializePlugin('WorkmanagerAlertBackgroundScheduler', () async {
+    await backgroundScheduler.initialize();
+    await backgroundScheduler.registerPeriodicTask(
+      settingsRepository.loadSettings().alertCheckFrequency,
+    );
+  });
 
   runApp(
     ProviderScope(
@@ -84,4 +95,25 @@ Future<void> main() async {
       child: const RateifyApp(),
     ),
   );
+}
+
+/// §20.9 Platform-Specific Plugin Initialization Must Not Crash App Boot.
+///
+/// Several plugins in this stack have partial or no support on every
+/// platform Flutter targets (`workmanager` on web being the concrete case
+/// that prompted this — see `WorkmanagerAlertBackgroundScheduler`'s own doc
+/// comment). Rather than adding one-off try/catches at each call site,
+/// every startup-time plugin initialization in `main()` funnels through
+/// here: a failure degrades that one feature (logged, not silent) instead
+/// of preventing the entire app from launching.
+Future<void> _initializePlugin(
+  String label,
+  Future<void> Function() action,
+) async {
+  try {
+    await action();
+  } catch (error, stackTrace) {
+    debugPrint('$label failed to initialize (continuing without it): $error');
+    debugPrintStack(stackTrace: stackTrace);
+  }
 }
