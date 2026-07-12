@@ -134,7 +134,7 @@ void main() {
   );
 
   testWidgets(
-    'a currency already present is shown disabled in the picker, preventing the duplicate before it happens (TC-CONV-006)',
+    'a currency already present is shown with a selected indicator in the picker, still tappable (TC-CONV-006)',
     (tester) async {
       await pumpConverterPage(tester);
 
@@ -144,19 +144,45 @@ void main() {
       final eurListTile = tester.widget<ListTile>(
         find.widgetWithText(ListTile, 'EUR'),
       );
-      expect(eurListTile.enabled, isFalse);
-      expect(eurListTile.onTap, isNull);
-      // Both currently-present tiles (USD, EUR) show as "Added".
-      expect(find.text('Added'), findsNWidgets(2));
+      // §3.2 tap-to-remove addendum: no longer disabled — both
+      // currently-present tiles (USD, EUR) show a selected checkmark
+      // instead, and stay tappable.
+      expect(eurListTile.enabled, isTrue);
+      expect(eurListTile.onTap, isNotNull);
+      expect(find.byIcon(Icons.check_circle_outline), findsNWidgets(2));
+    },
+  );
 
-      // Tapping a disabled ListTile is a no-op — the sheet stays open and no
-      // duplicate is added. The `addCurrency` -> duplicateCurrency rejection
-      // path itself is covered directly in converter_controller_test.dart;
-      // this confirms the picker also prevents it proactively at the UI
-      // level rather than only reacting after the fact.
+  testWidgets(
+    'tapping an already-selected currency in the picker removes it once there are more than 2 tiles (TC-CONV-033)',
+    (tester) async {
+      await pumpConverterPage(
+        tester,
+        selectedConverterCurrencies: const ['USD', 'EUR', 'JPY'],
+      );
+
+      await tester.tap(find.text('Add currency'));
+      await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(ListTile, 'EUR'));
       await tester.pumpAndSettle();
-      expect(find.text('Added'), findsNWidgets(2));
+
+      expect(find.byType(CurrencyInputTile), findsNWidgets(2));
+      expect(find.text('EUR'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'tapping an already-selected currency in the picker is blocked at exactly 2 tiles (TC-CONV-034)',
+    (tester) async {
+      await pumpConverterPage(tester);
+
+      await tester.tap(find.text('Add currency'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'EUR'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Minimal 2 mata uang diperlukan.'), findsOneWidget);
+      expect(find.byType(CurrencyInputTile), findsNWidgets(2));
     },
   );
 
@@ -288,8 +314,8 @@ void main() {
       return scrollableState.position.maxScrollExtent;
     }
 
-    testWidgets('TC-CONV-029: 2 tiles on a small phone viewport (320x568) — zero '
-        'scrolling required for tiles or keypad', (tester) async {
+    testWidgets('TC-CONV-029: 2 tiles on a small phone viewport (320x568) — at '
+        'most a small amount of scroll for tiles or keypad', (tester) async {
       await pumpConverterPage(tester, surfaceSize: smallPhone);
 
       expect(find.byType(CurrencyInputTile), findsNWidgets(2));
@@ -298,13 +324,18 @@ void main() {
       expectKeypadFullyVisible(tester, smallPhone);
       expect(tester.takeException(), isNull);
 
-      // The whole point of the compact layout: at 2 tiles there should be
-      // nothing left to scroll at all.
+      // §15.6 (Batch 04b): the compact layout should need no scroll under
+      // normal spacing, but a small amount of scroll is an explicitly
+      // accepted tradeoff over compressing spacing to zero — e.g. the
+      // §3.7 Batch 05 addendum gap below the rate timestamp label. This is
+      // not "any amount of scroll is fine": it bounds how small "small"
+      // must stay, well under a single tile's height.
       expect(
         tileSectionMaxScrollExtent(tester),
-        lessThanOrEqualTo(0.5),
+        lessThanOrEqualTo(20),
         reason:
-            '2 compact tiles + the add-currency row must fit with zero scrolling',
+            '2 compact tiles + the add-currency row must fit with at most a '
+            'small amount of scroll (§15.6)',
       );
     });
 
@@ -778,5 +809,24 @@ void main() {
         },
       );
     }
+
+    testWidgets(
+      'TC-CONV-035: at least gapSm between the rate timestamp label and the first tile',
+      (tester) async {
+        await pumpConverterPage(tester);
+
+        final labelRect = tester.getRect(find.textContaining('Updated'));
+        final firstTileRect = tester
+            .getRect(find.byType(CurrencyInputTile).first);
+
+        expect(
+          firstTileRect.top - labelRect.bottom,
+          greaterThanOrEqualTo(UiConstants.gapSm),
+          reason:
+              'gap between the rate timestamp label and the first tile '
+              'must be at least gapSm (${UiConstants.gapSm}px)',
+        );
+      },
+    );
   });
 }

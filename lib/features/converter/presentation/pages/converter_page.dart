@@ -72,7 +72,11 @@ class _ConverterBody extends ConsumerWidget {
         CurrencyInfo(code: code, displayName: code);
   }
 
-  Future<void> _addCurrency(BuildContext context, WidgetRef ref) async {
+  /// §3.2 tap-to-remove addendum: opens the picker, then interprets the
+  /// tapped currency as an add or a remove depending on whether it was
+  /// already in the tile list — the picker sheet itself stays add/remove
+  /// agnostic (see its own doc comment).
+  Future<void> _openCurrencyPicker(BuildContext context, WidgetRef ref) async {
     final existingCodes = state.tiles.map((tile) => tile.currencyCode).toSet();
     final picked = await ConverterCurrencyPickerSheet.show(
       context,
@@ -80,9 +84,13 @@ class _ConverterBody extends ConsumerWidget {
     );
     if (picked == null) return;
 
-    final failure = ref
-        .read(converterControllerProvider.notifier)
-        .addCurrency(picked);
+    final notifier = ref.read(converterControllerProvider.notifier);
+    final alreadySelectedTile = state.tiles.firstWhereOrNull(
+      (tile) => tile.currencyCode == picked,
+    );
+    final failure = alreadySelectedTile != null
+        ? notifier.removeCurrency(alreadySelectedTile.id)
+        : notifier.addCurrency(picked);
     if (failure != null && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(describeTileListMutationFailure(failure))),
@@ -150,11 +158,16 @@ class _ConverterBody extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (state.rateSnapshot != null)
+                  if (state.rateSnapshot != null) ...[
                     RateTimestampLabel(
                       snapshot: state.rateSnapshot!,
                       errorMessage: state.errorMessage,
                     ),
+                    // §3.7 spacing addendum (Batch 05): standard `gapSm`
+                    // (8px, §15.6) breathing room below the label, same as
+                    // the spacing already enforced between tiles.
+                    const SizedBox(height: UiConstants.gapSm),
+                  ],
                   ReorderableListView.builder(
                     // Nested inside the outer SingleChildScrollView, so this
                     // list sizes to its content and defers scrolling to the
@@ -223,7 +236,9 @@ class _ConverterBody extends ConsumerWidget {
                   // it (§15.6), so no separate gap is added here.
                   BenchmarkComparisonCard(results: state.benchmarkResults),
                   const SizedBox(height: UiConstants.gapSm),
-                  _AddCurrencyRow(onTap: () => _addCurrency(context, ref)),
+                  _AddCurrencyRow(
+                    onTap: () => _openCurrencyPicker(context, ref),
+                  ),
                 ],
               ),
             ),
