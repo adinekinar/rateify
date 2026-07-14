@@ -24,7 +24,9 @@ class HiveAlertRepository implements AlertRepository {
   List<RateAlert> getAllAlerts() {
     return _alertBox.values
         .map(
-          (raw) => rateAlertFromJson(jsonDecode(raw as String) as Map<String, dynamic>),
+          (raw) => rateAlertFromJson(
+            jsonDecode(raw as String) as Map<String, dynamic>,
+          ),
         )
         .toList();
   }

@@ -62,20 +62,19 @@ void main() {
   }
 
   group('§6.6 empty state', () {
-    testWidgets(
-      'TC-ALERT-012: no alerts exist -> the empty state is shown',
-      (tester) async {
-        await pumpAlertPage(tester, initialAlerts: []);
+    testWidgets('TC-ALERT-012: no alerts exist -> the empty state is shown', (
+      tester,
+    ) async {
+      await pumpAlertPage(tester, initialAlerts: []);
 
-        expect(find.text('Belum ada rate alert.'), findsOneWidget);
-        expect(
-          find.text(
-            'Tambahkan alert untuk diberi tahu saat rate mencapai target.',
-          ),
-          findsOneWidget,
-        );
-      },
-    );
+      expect(find.text('Belum ada rate alert.'), findsOneWidget);
+      expect(
+        find.text(
+          'Tambahkan alert untuk diberi tahu saat rate mencapai target.',
+        ),
+        findsOneWidget,
+      );
+    });
 
     testWidgets('an alert exists -> no empty state text, alert is listed', (
       tester,
@@ -111,34 +110,36 @@ void main() {
   testWidgets(
     'TC-ALERT-002: toggling the switch activates/deactivates the alert',
     (tester) async {
-      final container = await pumpAlertPage(
-        tester,
-        initialAlerts: [alert()],
-      );
+      final container = await pumpAlertPage(tester, initialAlerts: [alert()]);
 
       expect(find.text('Armed'), findsOneWidget);
 
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
 
-      expect(container.read(alertListControllerProvider).single.isActive, isFalse);
+      expect(
+        container.read(alertListControllerProvider).single.isActive,
+        isFalse,
+      );
       expect(find.text('Inactive'), findsOneWidget);
 
       await tester.tap(find.byType(Switch));
       await tester.pumpAndSettle();
-      expect(container.read(alertListControllerProvider).single.isActive, isTrue);
+      expect(
+        container.read(alertListControllerProvider).single.isActive,
+        isTrue,
+      );
     },
   );
 
-  testWidgets(
-    'a disarmed alert shows the "Waiting to reset" status hint',
-    (tester) async {
-      await pumpAlertPage(tester, initialAlerts: [alert(isArmed: false)]);
+  testWidgets('a disarmed alert shows the "Waiting to reset" status hint', (
+    tester,
+  ) async {
+    await pumpAlertPage(tester, initialAlerts: [alert(isArmed: false)]);
 
-      expect(find.text('Waiting to reset'), findsOneWidget);
-      expect(find.text('Armed'), findsNothing);
-    },
-  );
+    expect(find.text('Waiting to reset'), findsOneWidget);
+    expect(find.text('Armed'), findsNothing);
+  });
 
   testWidgets(
     'TC-ALERT-014 (Widget): deleting an alert requires confirmation before it disappears',
@@ -164,35 +165,36 @@ void main() {
     },
   );
 
-  testWidgets('viewing trigger history shows past triggers, most recent first', (
-    tester,
-  ) async {
-    await pumpAlertPage(
-      tester,
-      initialAlerts: [alert()],
-      initialHistory: [
-        AlertTriggerHistory(
-          id: 'h1',
-          alertId: 'alert-1',
-          triggeredRate: 160.5,
-          triggeredAt: DateTime(2026, 7),
-        ),
-        AlertTriggerHistory(
-          id: 'h2',
-          alertId: 'alert-1',
-          triggeredRate: 161.2,
-          triggeredAt: DateTime(2026, 7, 3),
-        ),
-      ],
-    );
+  testWidgets(
+    'viewing trigger history shows past triggers, most recent first',
+    (tester) async {
+      await pumpAlertPage(
+        tester,
+        initialAlerts: [alert()],
+        initialHistory: [
+          AlertTriggerHistory(
+            id: 'h1',
+            alertId: 'alert-1',
+            triggeredRate: 160.5,
+            triggeredAt: DateTime(2026, 7),
+          ),
+          AlertTriggerHistory(
+            id: 'h2',
+            alertId: 'alert-1',
+            triggeredRate: 161.2,
+            triggeredAt: DateTime(2026, 7, 3),
+          ),
+        ],
+      );
 
-    await tester.tap(find.byIcon(Icons.history));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.history));
+      await tester.pumpAndSettle();
 
-    expect(find.text('USD/JPY trigger history'), findsOneWidget);
-    expect(find.textContaining('161.20'), findsOneWidget);
-    expect(find.textContaining('160.50'), findsOneWidget);
-  });
+      expect(find.text('USD/JPY trigger history'), findsOneWidget);
+      expect(find.textContaining('161.20'), findsOneWidget);
+      expect(find.textContaining('160.50'), findsOneWidget);
+    },
+  );
 
   testWidgets('an alert with no trigger history shows "No triggers yet."', (
     tester,

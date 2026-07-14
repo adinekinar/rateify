@@ -22,7 +22,10 @@ class HiveTripRepository implements TripRepository {
   @override
   List<Trip> getAllTrips() {
     return _tripBox.values
-        .map((raw) => tripFromJson(jsonDecode(raw as String) as Map<String, dynamic>))
+        .map(
+          (raw) =>
+              tripFromJson(jsonDecode(raw as String) as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -94,8 +97,9 @@ class HiveTripRepository implements TripRepository {
   List<TripExpense> getExpensesForTrip(String tripId) {
     return _expenseBox.values
         .map(
-          (raw) =>
-              tripExpenseFromJson(jsonDecode(raw as String) as Map<String, dynamic>),
+          (raw) => tripExpenseFromJson(
+            jsonDecode(raw as String) as Map<String, dynamic>,
+          ),
         )
         .where((expense) => expense.tripId == tripId)
         .toList();

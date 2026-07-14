@@ -49,7 +49,10 @@ void main() {
 
       // Fresh repository instance over the same box proves it was actually
       // persisted, not just held in memory.
-      final reloaded = HiveTripRepository(tripBox, expenseBox).getAllTrips().single;
+      final reloaded = HiveTripRepository(
+        tripBox,
+        expenseBox,
+      ).getAllTrips().single;
       expect(reloaded.name, 'Tokyo Trip');
       expect(reloaded.homeCurrency, 'USD');
     },
@@ -95,81 +98,75 @@ void main() {
     },
   );
 
-  test(
-    'deleteTrip removes the trip and cascades to delete its expenses, with '
-    'no orphan reference left behind (TC-TRIP-002)',
-    () {
-      final repository = HiveTripRepository(tripBox, expenseBox);
-      repository.createTrip(
-        name: 'Tokyo Trip',
-        localCurrency: 'JPY',
-        homeCurrency: 'USD',
-        totalBudget: 200000,
-      );
-      final trip = repository.getAllTrips().single;
-      repository.addExpense(
-        tripId: trip.id,
-        title: 'Ramen',
-        amountLocal: 1200,
-        category: ExpenseCategory.food,
-        spentAt: DateTime(2026, 7),
-      );
-      expect(repository.getExpensesForTrip(trip.id), hasLength(1));
+  test('deleteTrip removes the trip and cascades to delete its expenses, with '
+      'no orphan reference left behind (TC-TRIP-002)', () {
+    final repository = HiveTripRepository(tripBox, expenseBox);
+    repository.createTrip(
+      name: 'Tokyo Trip',
+      localCurrency: 'JPY',
+      homeCurrency: 'USD',
+      totalBudget: 200000,
+    );
+    final trip = repository.getAllTrips().single;
+    repository.addExpense(
+      tripId: trip.id,
+      title: 'Ramen',
+      amountLocal: 1200,
+      category: ExpenseCategory.food,
+      spentAt: DateTime(2026, 7),
+    );
+    expect(repository.getExpensesForTrip(trip.id), hasLength(1));
 
-      repository.deleteTrip(trip.id);
+    repository.deleteTrip(trip.id);
 
-      expect(repository.getAllTrips(), isEmpty);
-      expect(repository.getExpensesForTrip(trip.id), isEmpty);
-      expect(HiveTripRepository(tripBox, expenseBox).getAllTrips(), isEmpty);
-    },
-  );
+    expect(repository.getAllTrips(), isEmpty);
+    expect(repository.getExpensesForTrip(trip.id), isEmpty);
+    expect(HiveTripRepository(tripBox, expenseBox).getAllTrips(), isEmpty);
+  });
 
-  test(
-    'addExpense/editExpense/deleteExpense: expense list and totals update '
-    'correctly (TC-TRIP-003)',
-    () async {
-      final repository = HiveTripRepository(tripBox, expenseBox);
-      repository.createTrip(
-        name: 'Tokyo Trip',
-        localCurrency: 'JPY',
-        homeCurrency: 'USD',
-        totalBudget: 200000,
-      );
-      final trip = repository.getAllTrips().single;
+  test('addExpense/editExpense/deleteExpense: expense list and totals update '
+      'correctly (TC-TRIP-003)', () async {
+    final repository = HiveTripRepository(tripBox, expenseBox);
+    repository.createTrip(
+      name: 'Tokyo Trip',
+      localCurrency: 'JPY',
+      homeCurrency: 'USD',
+      totalBudget: 200000,
+    );
+    final trip = repository.getAllTrips().single;
 
-      repository.addExpense(
-        tripId: trip.id,
-        title: 'Ramen',
-        amountLocal: 1200,
-        category: ExpenseCategory.food,
-        note: 'Ichiran',
-        spentAt: DateTime(2026, 7),
-      );
-      final created = repository.getExpensesForTrip(trip.id).single;
-      expect(created.title, 'Ramen');
-      expect(created.amountLocal, 1200);
-      expect(created.category, ExpenseCategory.food);
-      expect(created.note, 'Ichiran');
-      expect(created.tripId, trip.id);
+    repository.addExpense(
+      tripId: trip.id,
+      title: 'Ramen',
+      amountLocal: 1200,
+      category: ExpenseCategory.food,
+      note: 'Ichiran',
+      spentAt: DateTime(2026, 7),
+    );
+    final created = repository.getExpensesForTrip(trip.id).single;
+    expect(created.title, 'Ramen');
+    expect(created.amountLocal, 1200);
+    expect(created.category, ExpenseCategory.food);
+    expect(created.note, 'Ichiran');
+    expect(created.tripId, trip.id);
 
-      await Future<void>.delayed(const Duration(milliseconds: 5));
-      repository.editExpense(
-        id: created.id,
-        title: 'Ramen (extra)',
-        amountLocal: 1500,
-        category: ExpenseCategory.food,
-        spentAt: DateTime(2026, 7),
-      );
-      final edited = repository.getExpensesForTrip(trip.id).single;
-      expect(edited.title, 'Ramen (extra)');
-      expect(edited.amountLocal, 1500);
-      expect(edited.note, isNull);
-      expect(edited.updatedAt.isAfter(created.updatedAt), isTrue);
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    repository.editExpense(
+      id: created.id,
+      title: 'Ramen (extra)',
+      amountLocal: 1500,
+      category: ExpenseCategory.food,
+      spentAt: DateTime(2026, 7),
+    );
+    final edited = repository.getExpensesForTrip(trip.id).single;
+    expect(edited.title, 'Ramen (extra)');
+    expect(edited.amountLocal, 1500);
+    expect(edited.note, isNull);
+    expect(edited.updatedAt.isAfter(created.updatedAt), isTrue);
 
-      repository.deleteExpense(edited.id);
-      expect(repository.getExpensesForTrip(trip.id), isEmpty);
-    },
-  );
+    repository.deleteExpense(edited.id);
+    expect(repository.getExpensesForTrip(trip.id), isEmpty);
+  });
 
   test('getExpensesForTrip only returns expenses for that trip', () {
     final repository = HiveTripRepository(tripBox, expenseBox);

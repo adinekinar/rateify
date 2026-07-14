@@ -65,8 +65,7 @@ class AlertPage extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      builder: (context) =>
-          _AlertHistorySheet(alert: alert, history: history),
+      builder: (context) => _AlertHistorySheet(alert: alert, history: history),
     );
   }
 

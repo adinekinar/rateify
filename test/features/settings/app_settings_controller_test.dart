@@ -102,31 +102,28 @@ void main() {
     },
   );
 
-  test(
-    'TC-ALERT-011: changing the alert check frequency reschedules the '
-    'background task with the new interval',
-    () {
-      final scheduler = FakeAlertBackgroundScheduler();
-      final container = buildContainer(alertBackgroundScheduler: scheduler);
-      container.read(appSettingsProvider);
-      final notifier = container.read(appSettingsProvider.notifier);
+  test('TC-ALERT-011: changing the alert check frequency reschedules the '
+      'background task with the new interval', () {
+    final scheduler = FakeAlertBackgroundScheduler();
+    final container = buildContainer(alertBackgroundScheduler: scheduler);
+    container.read(appSettingsProvider);
+    final notifier = container.read(appSettingsProvider.notifier);
 
-      notifier.updateAlertCheckFrequency(const Duration(hours: 3));
+    notifier.updateAlertCheckFrequency(const Duration(hours: 3));
 
-      expect(scheduler.registeredFrequencies, [const Duration(hours: 3)]);
-      expect(
-        container.read(appSettingsProvider).alertCheckFrequency,
-        const Duration(hours: 3),
-      );
+    expect(scheduler.registeredFrequencies, [const Duration(hours: 3)]);
+    expect(
+      container.read(appSettingsProvider).alertCheckFrequency,
+      const Duration(hours: 3),
+    );
 
-      // Changing it again reschedules again — each change is its own
-      // cancel-and-re-register, not accumulated state.
-      notifier.updateAlertCheckFrequency(const Duration(hours: 12));
+    // Changing it again reschedules again — each change is its own
+    // cancel-and-re-register, not accumulated state.
+    notifier.updateAlertCheckFrequency(const Duration(hours: 12));
 
-      expect(scheduler.registeredFrequencies, [
-        const Duration(hours: 3),
-        const Duration(hours: 12),
-      ]);
-    },
-  );
+    expect(scheduler.registeredFrequencies, [
+      const Duration(hours: 3),
+      const Duration(hours: 12),
+    ]);
+  });
 }

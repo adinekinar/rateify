@@ -194,9 +194,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             const SizedBox(height: UiConstants.spaceMd),
             TextField(
               controller: _noteController,
-              decoration: const InputDecoration(
-                labelText: 'Note (optional)',
-              ),
+              decoration: const InputDecoration(labelText: 'Note (optional)'),
             ),
             if (_errorText != null) ...[
               const SizedBox(height: UiConstants.spaceXs),

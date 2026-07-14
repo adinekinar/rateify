@@ -20,18 +20,15 @@ import 'package:rateify/features/alerts/data/services/workmanager_alert_backgrou
 /// same annotation — this is intentional, not an oversight; a VM run can't
 /// exercise the web code path this test exists to cover.
 void main() {
-  test(
-    'initialize() and registerPeriodicTask() are no-ops on web instead of '
-    'throwing UnimplementedError from getCallbackHandle',
-    () async {
-      final scheduler = WorkmanagerAlertBackgroundScheduler();
+  test('initialize() and registerPeriodicTask() are no-ops on web instead of '
+      'throwing UnimplementedError from getCallbackHandle', () async {
+    final scheduler = WorkmanagerAlertBackgroundScheduler();
 
-      await scheduler.initialize();
-      await scheduler.registerPeriodicTask(const Duration(hours: 6));
+    await scheduler.initialize();
+    await scheduler.registerPeriodicTask(const Duration(hours: 6));
 
-      // Reaching this line at all is the assertion — before the kIsWeb
-      // guard, `initialize()` alone threw and never returned.
-      expect(true, isTrue);
-    },
-  );
+    // Reaching this line at all is the assertion — before the kIsWeb
+    // guard, `initialize()` alone threw and never returned.
+    expect(true, isTrue);
+  });
 }

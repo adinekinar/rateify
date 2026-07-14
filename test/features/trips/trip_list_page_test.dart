@@ -106,7 +106,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.add));
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextField, 'Trip name'), 'Bali Trip');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Trip name'),
+      'Bali Trip',
+    );
     await tester.enterText(
       find.widgetWithText(TextField, 'Total budget'),
       '5000',

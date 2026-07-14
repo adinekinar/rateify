@@ -43,7 +43,9 @@ class LocalNotificationService implements AlertNotificationService {
 
   @override
   Future<void> initialize({bool requestPermissions = true}) async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     // §6.5 notifications don't need alarms/critical alerts — the default
     // Darwin request flags (alert/sound/badge) are exactly what's needed.
     final iosSettings = DarwinInitializationSettings(

@@ -6,9 +6,11 @@ import 'package:rateify/features/trips/domain/repositories/trip_repository.dart'
 /// care about actual Hive persistence — only about provider
 /// wiring/behavior. Mirrors `FakeBenchmarkRepository`'s shape.
 class FakeTripRepository implements TripRepository {
-  FakeTripRepository({List<Trip>? initialTrips, List<TripExpense>? initialExpenses})
-    : _trips = List.of(initialTrips ?? const []),
-      _expenses = List.of(initialExpenses ?? const []);
+  FakeTripRepository({
+    List<Trip>? initialTrips,
+    List<TripExpense>? initialExpenses,
+  }) : _trips = List.of(initialTrips ?? const []),
+       _expenses = List.of(initialExpenses ?? const []);
 
   final List<Trip> _trips;
   final List<TripExpense> _expenses;

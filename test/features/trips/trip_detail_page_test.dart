@@ -93,25 +93,26 @@ void main() {
     },
   );
 
-  testWidgets('adding an expense removes the empty state and shows it in the list', (
-    tester,
-  ) async {
-    await pumpTripDetailPage(tester, forTrip: trip());
+  testWidgets(
+    'adding an expense removes the empty state and shows it in the list',
+    (tester) async {
+      await pumpTripDetailPage(tester, forTrip: trip());
 
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.add));
+      await tester.pumpAndSettle();
 
-    await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Ramen');
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Amount (JPY)'),
-      '1200',
-    );
-    await tester.tap(find.text('Add'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, 'Title'), 'Ramen');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Amount (JPY)'),
+        '1200',
+      );
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Belum ada pengeluaran.'), findsNothing);
-    expect(find.text('Ramen'), findsOneWidget);
-  });
+      expect(find.text('Belum ada pengeluaran.'), findsNothing);
+      expect(find.text('Ramen'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'TC-TRIP-014: deleting an expense requires confirmation before it disappears',
@@ -176,6 +177,9 @@ void main() {
     final progressBar = tester.widget<LinearProgressIndicator>(
       find.byType(LinearProgressIndicator),
     );
-    expect((progressBar.valueColor as AlwaysStoppedAnimation<Color>).value, isNotNull);
+    expect(
+      (progressBar.valueColor as AlwaysStoppedAnimation<Color>).value,
+      isNotNull,
+    );
   });
 }

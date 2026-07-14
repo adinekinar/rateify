@@ -816,8 +816,9 @@ void main() {
         await pumpConverterPage(tester);
 
         final labelRect = tester.getRect(find.textContaining('Updated'));
-        final firstTileRect = tester
-            .getRect(find.byType(CurrencyInputTile).first);
+        final firstTileRect = tester.getRect(
+          find.byType(CurrencyInputTile).first,
+        );
 
         expect(
           firstTileRect.top - labelRect.bottom,

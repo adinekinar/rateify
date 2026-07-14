@@ -78,10 +78,7 @@ void main() {
     });
 
     test('non-positive totalBudget is treated as 0 progress, not a crash', () {
-      expect(
-        TripBudgetCalculator.progressRatio(totalBudget: 0, spent: 400),
-        0,
-      );
+      expect(TripBudgetCalculator.progressRatio(totalBudget: 0, spent: 400), 0);
     });
   });
 
@@ -122,130 +119,118 @@ void main() {
     });
   });
 
-  group(
-    'spentInHomeCurrency uses the latest rate against the trip\'s own '
-    'snapshotted homeCurrency (TC-TRIP-008, TC-TRIP-010)',
-    () {
-      test(
-        'converts spentLocal using the current snapshot rate, never touching '
-        'amountLocal itself',
-        () {
-          final t = trip(
-            localCurrency: 'JPY',
-            homeCurrency: 'USD',
-            totalBudget: 100000,
-          );
-          final snapshot = RateSnapshotModel(
-            baseCurrency: 'USD',
-            rates: const {'JPY': 160.0, 'EUR': 0.8},
-            fetchedAt: DateTime(2026, 7),
-            sourceStatus: RateSourceStatus.freshRemote,
-          );
-
-          final result = TripBudgetCalculator.spentInHomeCurrency(
-            trip: t,
-            spentLocal: 16000,
-            snapshot: snapshot,
-          );
-
-          // rate(JPY->USD) = rateFromBase(USD)/rateFromBase(JPY) = 1/160
-          expect(result, closeTo(100, 0.0001));
-        },
+  group('spentInHomeCurrency uses the latest rate against the trip\'s own '
+      'snapshotted homeCurrency (TC-TRIP-008, TC-TRIP-010)', () {
+    test('converts spentLocal using the current snapshot rate, never touching '
+        'amountLocal itself', () {
+      final t = trip(
+        localCurrency: 'JPY',
+        homeCurrency: 'USD',
+        totalBudget: 100000,
+      );
+      final snapshot = RateSnapshotModel(
+        baseCurrency: 'USD',
+        rates: const {'JPY': 160.0, 'EUR': 0.8},
+        fetchedAt: DateTime(2026, 7),
+        sourceStatus: RateSourceStatus.freshRemote,
       );
 
-      test(
-        'a later snapshot with a different rate changes only the converted '
+      final result = TripBudgetCalculator.spentInHomeCurrency(
+        trip: t,
+        spentLocal: 16000,
+        snapshot: snapshot,
+      );
+
+      // rate(JPY->USD) = rateFromBase(USD)/rateFromBase(JPY) = 1/160
+      expect(result, closeTo(100, 0.0001));
+    });
+
+    test('a later snapshot with a different rate changes only the converted '
         'value — the stored amountLocal (simulated by the caller) is never '
-        'touched by this function',
-        () {
-          final t = trip(
-            localCurrency: 'JPY',
-            homeCurrency: 'USD',
-            totalBudget: 100000,
-          );
-          const spentLocal = 16000.0;
-
-          final before = TripBudgetCalculator.spentInHomeCurrency(
-            trip: t,
-            spentLocal: spentLocal,
-            snapshot: RateSnapshotModel(
-              baseCurrency: 'USD',
-              rates: const {'JPY': 160.0},
-              fetchedAt: DateTime(2026, 7),
-              sourceStatus: RateSourceStatus.freshRemote,
-            ),
-          );
-          final after = TripBudgetCalculator.spentInHomeCurrency(
-            trip: t,
-            spentLocal: spentLocal,
-            snapshot: RateSnapshotModel(
-              baseCurrency: 'USD',
-              rates: const {'JPY': 150.0},
-              fetchedAt: DateTime(2026, 7, 2),
-              sourceStatus: RateSourceStatus.freshRemote,
-            ),
-          );
-
-          expect(before, closeTo(100, 0.0001));
-          expect(after, closeTo(106.6667, 0.0001));
-          expect(before, isNot(equals(after)));
-          // spentLocal itself never changed between the two calls.
-        },
+        'touched by this function', () {
+      final t = trip(
+        localCurrency: 'JPY',
+        homeCurrency: 'USD',
+        totalBudget: 100000,
       );
+      const spentLocal = 16000.0;
 
-      test(
-        'TC-TRIP-010: converts against the trip\'s own snapshotted '
-        'homeCurrency, never a "current global" concept the function does '
-        'not even accept as input',
-        () {
-          // Trip was created while global home currency was USD.
-          final t = trip(
-            localCurrency: 'JPY',
-            homeCurrency: 'USD',
-            totalBudget: 100000,
-          );
-          // The global home currency is now (hypothetically) EUR, but the
-          // snapshot still carries both rates — spentInHomeCurrency has no
-          // way to read "the current global home currency" at all, so it
-          // can only ever resolve against trip.homeCurrency ('USD').
-          final snapshot = RateSnapshotModel(
-            baseCurrency: 'USD',
-            rates: const {'JPY': 160.0, 'EUR': 0.8},
-            fetchedAt: DateTime(2026, 7),
-            sourceStatus: RateSourceStatus.freshRemote,
-          );
-
-          final result = TripBudgetCalculator.spentInHomeCurrency(
-            trip: t,
-            spentLocal: 16000,
-            snapshot: snapshot,
-          );
-
-          expect(result, closeTo(100, 0.0001));
-        },
-      );
-
-      test('returns null when no rate is resolvable for either currency', () {
-        final t = trip(
-          localCurrency: 'JPY',
-          homeCurrency: 'XYZ',
-          totalBudget: 100000,
-        );
-        final snapshot = RateSnapshotModel(
+      final before = TripBudgetCalculator.spentInHomeCurrency(
+        trip: t,
+        spentLocal: spentLocal,
+        snapshot: RateSnapshotModel(
           baseCurrency: 'USD',
           rates: const {'JPY': 160.0},
           fetchedAt: DateTime(2026, 7),
           sourceStatus: RateSourceStatus.freshRemote,
-        );
+        ),
+      );
+      final after = TripBudgetCalculator.spentInHomeCurrency(
+        trip: t,
+        spentLocal: spentLocal,
+        snapshot: RateSnapshotModel(
+          baseCurrency: 'USD',
+          rates: const {'JPY': 150.0},
+          fetchedAt: DateTime(2026, 7, 2),
+          sourceStatus: RateSourceStatus.freshRemote,
+        ),
+      );
 
-        final result = TripBudgetCalculator.spentInHomeCurrency(
-          trip: t,
-          spentLocal: 16000,
-          snapshot: snapshot,
-        );
+      expect(before, closeTo(100, 0.0001));
+      expect(after, closeTo(106.6667, 0.0001));
+      expect(before, isNot(equals(after)));
+      // spentLocal itself never changed between the two calls.
+    });
 
-        expect(result, isNull);
-      });
-    },
-  );
+    test('TC-TRIP-010: converts against the trip\'s own snapshotted '
+        'homeCurrency, never a "current global" concept the function does '
+        'not even accept as input', () {
+      // Trip was created while global home currency was USD.
+      final t = trip(
+        localCurrency: 'JPY',
+        homeCurrency: 'USD',
+        totalBudget: 100000,
+      );
+      // The global home currency is now (hypothetically) EUR, but the
+      // snapshot still carries both rates — spentInHomeCurrency has no
+      // way to read "the current global home currency" at all, so it
+      // can only ever resolve against trip.homeCurrency ('USD').
+      final snapshot = RateSnapshotModel(
+        baseCurrency: 'USD',
+        rates: const {'JPY': 160.0, 'EUR': 0.8},
+        fetchedAt: DateTime(2026, 7),
+        sourceStatus: RateSourceStatus.freshRemote,
+      );
+
+      final result = TripBudgetCalculator.spentInHomeCurrency(
+        trip: t,
+        spentLocal: 16000,
+        snapshot: snapshot,
+      );
+
+      expect(result, closeTo(100, 0.0001));
+    });
+
+    test('returns null when no rate is resolvable for either currency', () {
+      final t = trip(
+        localCurrency: 'JPY',
+        homeCurrency: 'XYZ',
+        totalBudget: 100000,
+      );
+      final snapshot = RateSnapshotModel(
+        baseCurrency: 'USD',
+        rates: const {'JPY': 160.0},
+        fetchedAt: DateTime(2026, 7),
+        sourceStatus: RateSourceStatus.freshRemote,
+      );
+
+      final result = TripBudgetCalculator.spentInHomeCurrency(
+        trip: t,
+        spentLocal: 16000,
+        snapshot: snapshot,
+      );
+
+      expect(result, isNull);
+    });
+  });
 }

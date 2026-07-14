@@ -19,11 +19,12 @@ class BudgetProgressCard extends StatelessWidget {
   final TripDetailUiState state;
   final NumberFormatPreference numberFormatPreference;
 
-  Color _progressColor(BudgetProgressState progressState) => switch (progressState) {
-    BudgetProgressState.normal => AppColors.success,
-    BudgetProgressState.warning => AppColors.warning,
-    BudgetProgressState.danger => AppColors.danger,
-  };
+  Color _progressColor(BudgetProgressState progressState) =>
+      switch (progressState) {
+        BudgetProgressState.normal => AppColors.success,
+        BudgetProgressState.warning => AppColors.warning,
+        BudgetProgressState.danger => AppColors.danger,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -61,7 +62,9 @@ class BudgetProgressCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: state.progressRatio.clamp(0, 1).toDouble(),
               minHeight: 8,
-              backgroundColor: theme.colorScheme.onSurface.withValues(alpha: 0.1),
+              backgroundColor: theme.colorScheme.onSurface.withValues(
+                alpha: 0.1,
+              ),
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),

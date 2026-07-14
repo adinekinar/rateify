@@ -107,44 +107,41 @@ void main() {
     );
   });
 
-  testWidgets(
-    'TC-ALERT-010: opening the app runs the alert check immediately, '
-    'independent of any background scheduler state',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(400, 900));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('TC-ALERT-010: opening the app runs the alert check immediately, '
+      'independent of any background scheduler state', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(400, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final now = DateTime(2026, 7);
-      final alertRepository = FakeAlertRepository(
-        initialAlerts: [
-          RateAlert(
-            id: 'alert-1',
-            baseCurrency: 'USD',
-            quoteCurrency: 'JPY',
-            // The default FakeExchangeRateRepository snapshot has
-            // USD/JPY = 160, so this is already inside the trigger zone
-            // the moment the app opens.
-            targetRate: 150,
-            direction: AlertDirection.aboveTarget,
-            isActive: true,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        ],
-      );
-      final notificationService = FakeAlertNotificationService();
-
-      await tester.pumpWidget(
-        buildApp(
-          onboardingCompleted: true,
-          alertRepository: alertRepository,
-          alertNotificationService: notificationService,
+    final now = DateTime(2026, 7);
+    final alertRepository = FakeAlertRepository(
+      initialAlerts: [
+        RateAlert(
+          id: 'alert-1',
+          baseCurrency: 'USD',
+          quoteCurrency: 'JPY',
+          // The default FakeExchangeRateRepository snapshot has
+          // USD/JPY = 160, so this is already inside the trigger zone
+          // the moment the app opens.
+          targetRate: 150,
+          direction: AlertDirection.aboveTarget,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
         ),
-      );
-      await tester.pumpAndSettle();
+      ],
+    );
+    final notificationService = FakeAlertNotificationService();
 
-      expect(notificationService.shownNotifications, hasLength(1));
-      expect(alertRepository.getAllAlerts().single.isArmed, isFalse);
-    },
-  );
+    await tester.pumpWidget(
+      buildApp(
+        onboardingCompleted: true,
+        alertRepository: alertRepository,
+        alertNotificationService: notificationService,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(notificationService.shownNotifications, hasLength(1));
+    expect(alertRepository.getAllAlerts().single.isArmed, isFalse);
+  });
 }

@@ -48,7 +48,10 @@ void main() {
       expect(created.isActive, isTrue);
       expect(created.isArmed, isTrue);
 
-      final reloaded = HiveAlertRepository(alertBox, historyBox).getAllAlerts().single;
+      final reloaded = HiveAlertRepository(
+        alertBox,
+        historyBox,
+      ).getAllAlerts().single;
       expect(reloaded.baseCurrency, 'USD');
       expect(reloaded.targetRate, 160);
     },
@@ -81,30 +84,33 @@ void main() {
     expect(edited.isArmed, isTrue);
   });
 
-  test('deleteAlert removes it, cascading to its trigger history (TC-ALERT-001)', () {
-    final repository = HiveAlertRepository(alertBox, historyBox);
-    repository.createAlert(
-      baseCurrency: 'USD',
-      quoteCurrency: 'JPY',
-      targetRate: 160,
-      direction: AlertDirection.aboveTarget,
-    );
-    final alert = repository.getAllAlerts().single;
-    repository.addTriggerHistory(
-      AlertTriggerHistory(
-        id: 'h1',
-        alertId: alert.id,
-        triggeredRate: 161,
-        triggeredAt: DateTime(2026, 7),
-      ),
-    );
-    expect(repository.getTriggerHistoryForAlert(alert.id), hasLength(1));
+  test(
+    'deleteAlert removes it, cascading to its trigger history (TC-ALERT-001)',
+    () {
+      final repository = HiveAlertRepository(alertBox, historyBox);
+      repository.createAlert(
+        baseCurrency: 'USD',
+        quoteCurrency: 'JPY',
+        targetRate: 160,
+        direction: AlertDirection.aboveTarget,
+      );
+      final alert = repository.getAllAlerts().single;
+      repository.addTriggerHistory(
+        AlertTriggerHistory(
+          id: 'h1',
+          alertId: alert.id,
+          triggeredRate: 161,
+          triggeredAt: DateTime(2026, 7),
+        ),
+      );
+      expect(repository.getTriggerHistoryForAlert(alert.id), hasLength(1));
 
-    repository.deleteAlert(alert.id);
+      repository.deleteAlert(alert.id);
 
-    expect(repository.getAllAlerts(), isEmpty);
-    expect(repository.getTriggerHistoryForAlert(alert.id), isEmpty);
-  });
+      expect(repository.getAllAlerts(), isEmpty);
+      expect(repository.getTriggerHistoryForAlert(alert.id), isEmpty);
+    },
+  );
 
   test(
     'activateAlert/deactivateAlert toggles isActive without disturbing other fields (TC-ALERT-002)',
@@ -127,52 +133,55 @@ void main() {
     },
   );
 
-  test('getTriggerHistoryForAlert returns only that alert\'s rows, most recent first', () {
-    final repository = HiveAlertRepository(alertBox, historyBox);
-    repository.createAlert(
-      baseCurrency: 'USD',
-      quoteCurrency: 'JPY',
-      targetRate: 160,
-      direction: AlertDirection.aboveTarget,
-    );
-    repository.createAlert(
-      baseCurrency: 'USD',
-      quoteCurrency: 'IDR',
-      targetRate: 16000,
-      direction: AlertDirection.aboveTarget,
-    );
-    final alerts = repository.getAllAlerts();
-    final jpyAlert = alerts.firstWhere((a) => a.quoteCurrency == 'JPY');
-    final idrAlert = alerts.firstWhere((a) => a.quoteCurrency == 'IDR');
+  test(
+    'getTriggerHistoryForAlert returns only that alert\'s rows, most recent first',
+    () {
+      final repository = HiveAlertRepository(alertBox, historyBox);
+      repository.createAlert(
+        baseCurrency: 'USD',
+        quoteCurrency: 'JPY',
+        targetRate: 160,
+        direction: AlertDirection.aboveTarget,
+      );
+      repository.createAlert(
+        baseCurrency: 'USD',
+        quoteCurrency: 'IDR',
+        targetRate: 16000,
+        direction: AlertDirection.aboveTarget,
+      );
+      final alerts = repository.getAllAlerts();
+      final jpyAlert = alerts.firstWhere((a) => a.quoteCurrency == 'JPY');
+      final idrAlert = alerts.firstWhere((a) => a.quoteCurrency == 'IDR');
 
-    repository.addTriggerHistory(
-      AlertTriggerHistory(
-        id: 'h1',
-        alertId: jpyAlert.id,
-        triggeredRate: 161,
-        triggeredAt: DateTime(2026, 7),
-      ),
-    );
-    repository.addTriggerHistory(
-      AlertTriggerHistory(
-        id: 'h2',
-        alertId: jpyAlert.id,
-        triggeredRate: 162,
-        triggeredAt: DateTime(2026, 7, 3),
-      ),
-    );
-    repository.addTriggerHistory(
-      AlertTriggerHistory(
-        id: 'h3',
-        alertId: idrAlert.id,
-        triggeredRate: 16001,
-        triggeredAt: DateTime(2026, 7, 2),
-      ),
-    );
+      repository.addTriggerHistory(
+        AlertTriggerHistory(
+          id: 'h1',
+          alertId: jpyAlert.id,
+          triggeredRate: 161,
+          triggeredAt: DateTime(2026, 7),
+        ),
+      );
+      repository.addTriggerHistory(
+        AlertTriggerHistory(
+          id: 'h2',
+          alertId: jpyAlert.id,
+          triggeredRate: 162,
+          triggeredAt: DateTime(2026, 7, 3),
+        ),
+      );
+      repository.addTriggerHistory(
+        AlertTriggerHistory(
+          id: 'h3',
+          alertId: idrAlert.id,
+          triggeredRate: 16001,
+          triggeredAt: DateTime(2026, 7, 2),
+        ),
+      );
 
-    final jpyHistory = repository.getTriggerHistoryForAlert(jpyAlert.id);
-    expect(jpyHistory, hasLength(2));
-    expect(jpyHistory.first.id, 'h2'); // most recent first
-    expect(jpyHistory.last.id, 'h1');
-  });
+      final jpyHistory = repository.getTriggerHistoryForAlert(jpyAlert.id);
+      expect(jpyHistory, hasLength(2));
+      expect(jpyHistory.first.id, 'h2'); // most recent first
+      expect(jpyHistory.last.id, 'h1');
+    },
+  );
 }

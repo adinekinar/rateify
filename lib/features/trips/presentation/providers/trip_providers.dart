@@ -118,11 +118,14 @@ class TripDetailUiState {
 /// `rateHistoryControllerProvider` is one in §12.3: state that's keyed per
 /// argument and needs an `await` in `build`.
 final tripDetailControllerProvider =
-    AsyncNotifierProvider.family<TripDetailController, TripDetailUiState, String>(
-      TripDetailController.new,
-    );
+    AsyncNotifierProvider.family<
+      TripDetailController,
+      TripDetailUiState,
+      String
+    >(TripDetailController.new);
 
-class TripDetailController extends FamilyAsyncNotifier<TripDetailUiState, String> {
+class TripDetailController
+    extends FamilyAsyncNotifier<TripDetailUiState, String> {
   /// Cached rather than re-fetched on every expense mutation — recomputing
   /// spent/remaining/progress after an add/edit/delete doesn't need a fresh
   /// network round-trip each time; only [refresh] (explicit pull-to-refresh)

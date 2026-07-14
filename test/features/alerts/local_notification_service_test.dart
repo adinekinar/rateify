@@ -31,14 +31,17 @@ void main() {
       expect(text.body, 'Your target was above 160.00.');
     });
 
-    test('belowTarget uses "below" and formats the triggered rate to 2 decimals', () {
-      final text = alertTriggerNotificationText(
-        alert(direction: AlertDirection.belowTarget, targetRate: 105),
-        104.999,
-      );
+    test(
+      'belowTarget uses "below" and formats the triggered rate to 2 decimals',
+      () {
+        final text = alertTriggerNotificationText(
+          alert(direction: AlertDirection.belowTarget, targetRate: 105),
+          104.999,
+        );
 
-      expect(text.title, 'USD/JPY reached 105.00');
-      expect(text.body, 'Your target was below 105.00.');
-    });
+        expect(text.title, 'USD/JPY reached 105.00');
+        expect(text.body, 'Your target was below 105.00.');
+      },
+    );
   });
 }

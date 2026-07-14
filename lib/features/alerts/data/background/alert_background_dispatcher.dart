@@ -34,7 +34,10 @@ void alertBackgroundCallbackDispatcher() {
       remoteDataSource: ExchangeRateRemoteDataSource(),
       localDataSource: ExchangeRateLocalDataSource(rateSnapshotBox),
     );
-    final alertRepository = HiveAlertRepository(alertBox, alertTriggerHistoryBox);
+    final alertRepository = HiveAlertRepository(
+      alertBox,
+      alertTriggerHistoryBox,
+    );
     final notificationService = LocalNotificationService();
     // Never prompts from the background isolate (§20.5) — permission is
     // only ever requested from the foreground app in `main()`.

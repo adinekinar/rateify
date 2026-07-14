@@ -25,67 +25,63 @@ void main() {
     return container;
   }
 
-  test(
-    'TC-TRIP-009: changing the global home currency after trip creation '
-    'leaves the existing trip\'s homeCurrency snapshot unchanged',
-    () {
-      final container = buildContainer();
-      addTearDown(container.dispose);
+  test('TC-TRIP-009: changing the global home currency after trip creation '
+      'leaves the existing trip\'s homeCurrency snapshot unchanged', () {
+    final container = buildContainer();
+    addTearDown(container.dispose);
 
-      container
-          .read(tripListControllerProvider.notifier)
-          .createTrip(name: 'Tokyo Trip', localCurrency: 'JPY', totalBudget: 100000);
-      final createdTrip = container.read(tripListControllerProvider).single;
-      expect(createdTrip.homeCurrency, 'USD');
+    container
+        .read(tripListControllerProvider.notifier)
+        .createTrip(
+          name: 'Tokyo Trip',
+          localCurrency: 'JPY',
+          totalBudget: 100000,
+        );
+    final createdTrip = container.read(tripListControllerProvider).single;
+    expect(createdTrip.homeCurrency, 'USD');
 
-      // The user now changes their global home currency in Settings.
-      container
-          .read(appSettingsProvider.notifier)
-          .updateHomeCurrency('EUR');
-      expect(container.read(appSettingsProvider).homeCurrency, 'EUR');
+    // The user now changes their global home currency in Settings.
+    container.read(appSettingsProvider.notifier).updateHomeCurrency('EUR');
+    expect(container.read(appSettingsProvider).homeCurrency, 'EUR');
 
-      // The existing trip must be completely unaffected.
-      final tripAfterGlobalChange = container
-          .read(tripListControllerProvider)
-          .single;
-      expect(tripAfterGlobalChange.id, createdTrip.id);
-      expect(tripAfterGlobalChange.homeCurrency, 'USD');
-    },
-  );
+    // The existing trip must be completely unaffected.
+    final tripAfterGlobalChange = container
+        .read(tripListControllerProvider)
+        .single;
+    expect(tripAfterGlobalChange.id, createdTrip.id);
+    expect(tripAfterGlobalChange.homeCurrency, 'USD');
+  });
 
-  test(
-    'TC-TRIP-011: a new trip created after the global home currency change '
-    'snapshots the *new* global home currency',
-    () {
-      final container = buildContainer();
-      addTearDown(container.dispose);
+  test('TC-TRIP-011: a new trip created after the global home currency change '
+      'snapshots the *new* global home currency', () {
+    final container = buildContainer();
+    addTearDown(container.dispose);
 
-      container
-          .read(tripListControllerProvider.notifier)
-          .createTrip(
-            name: 'Trip Before',
-            localCurrency: 'JPY',
-            totalBudget: 100000,
-          );
+    container
+        .read(tripListControllerProvider.notifier)
+        .createTrip(
+          name: 'Trip Before',
+          localCurrency: 'JPY',
+          totalBudget: 100000,
+        );
 
-      container.read(appSettingsProvider.notifier).updateHomeCurrency('EUR');
+    container.read(appSettingsProvider.notifier).updateHomeCurrency('EUR');
 
-      container
-          .read(tripListControllerProvider.notifier)
-          .createTrip(
-            name: 'Trip After',
-            localCurrency: 'THB',
-            totalBudget: 5000,
-          );
+    container
+        .read(tripListControllerProvider.notifier)
+        .createTrip(
+          name: 'Trip After',
+          localCurrency: 'THB',
+          totalBudget: 5000,
+        );
 
-      final trips = container.read(tripListControllerProvider);
-      final tripBefore = trips.firstWhere((t) => t.name == 'Trip Before');
-      final tripAfter = trips.firstWhere((t) => t.name == 'Trip After');
+    final trips = container.read(tripListControllerProvider);
+    final tripBefore = trips.firstWhere((t) => t.name == 'Trip Before');
+    final tripAfter = trips.firstWhere((t) => t.name == 'Trip After');
 
-      expect(tripBefore.homeCurrency, 'USD');
-      expect(tripAfter.homeCurrency, 'EUR');
-    },
-  );
+    expect(tripBefore.homeCurrency, 'USD');
+    expect(tripAfter.homeCurrency, 'EUR');
+  });
 
   test('editTrip never changes homeCurrency, even implicitly', () {
     final container = buildContainer();
@@ -122,7 +118,10 @@ void main() {
     final trip = container.read(tripListControllerProvider).single;
 
     container.read(tripListControllerProvider.notifier).archiveTrip(trip.id);
-    expect(container.read(tripListControllerProvider).single.isArchived, isTrue);
+    expect(
+      container.read(tripListControllerProvider).single.isArchived,
+      isTrue,
+    );
 
     container.read(tripListControllerProvider.notifier).deleteTrip(trip.id);
     expect(container.read(tripListControllerProvider), isEmpty);
